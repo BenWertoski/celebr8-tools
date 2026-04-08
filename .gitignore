@@ -1,0 +1,6 @@
+# Private signing key — NEVER commit this
+.signing_key.pem
+
+# Python cache
+__pycache__/
+*.pyc
