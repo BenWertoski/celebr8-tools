@@ -25,12 +25,17 @@ Each package tarball contains exactly two files:
 ### First-time bootstrap
 
 ```sh
-python3 gen.py
+python3 gen.py --bootstrap
 ```
 
-The script will generate a new Ed25519 keypair, save it to `.signing_key.pem`
-(git-ignored), and print the Rust public key literal to embed in
-`src/registry/signature.rs` in celebr8-cli.
+The `--bootstrap` flag generates a new Ed25519 keypair, saves it to
+`.signing_key.pem` (git-ignored), and prints the Rust public key literal to
+embed in `src/registry/signature.rs` in celebr8-cli. Back up `.signing_key.pem`
+and store its content in the `CELEBR8_REGISTRY_SIGNING_KEY` GitHub Actions
+secret before publishing.
+
+Running `python3 gen.py` without `--bootstrap` when no key is present exits
+with an error rather than silently creating a new trust anchor.
 
 ### Subsequent runs
 
