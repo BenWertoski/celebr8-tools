@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-08T18:55:17Z",
+  "generated_at": "2026-04-08T20:46:12Z",
   "denylist_digest": "sha256:ba4fc47c6525d8de1a187fe7d41e1de1b2fe52df1f6a43d0544675d3ac44e5fe",
   "tools": [
     {
@@ -20,12 +20,12 @@
           "version": "v2.13.0",
           "package_schema_version": 1,
           "package_url": "packages/subfinder/v2.13.0.tar.gz",
-          "digest": "sha256:2e65ce7cd1137ab5f7c0bdb98b65d594b62cd53bb2a7d021dedb2d6bbc912fbb",
+          "digest": "sha256:511c2fcda65c0f8c3f3faaa2be16dc524d54ac5fd978fa542245b3ce36e6a62a",
           "size": 1286,
           "status": "active",
           "min_cli_version": "0.1.0",
           "max_cli_version": null,
-          "published_at": "2026-04-08T18:55:17Z"
+          "published_at": "2026-04-08T20:46:12Z"
         }
       ],
       "platforms": [
@@ -58,12 +58,12 @@
           "version": "v1.9.0",
           "package_schema_version": 1,
           "package_url": "packages/httpx/v1.9.0.tar.gz",
-          "digest": "sha256:c700f1c960ec9652fe07258a8865a5742b92332d6d73d8784961d3b3b9e2ab1c",
-          "size": 1413,
+          "digest": "sha256:57f9f59ac5b2c7b821e9c8374ad0f1fc7ac5a75f705862551ecd1e7ae0827675",
+          "size": 1415,
           "status": "active",
           "min_cli_version": "0.1.0",
           "max_cli_version": null,
-          "published_at": "2026-04-08T18:55:17Z"
+          "published_at": "2026-04-08T20:46:12Z"
         }
       ],
       "platforms": [
@@ -76,6 +76,1045 @@
       "github": {
         "owner": "projectdiscovery",
         "repo": "httpx"
+      }
+    },
+    {
+      "id": "amass",
+      "display_name": "Amass",
+      "description": "In-depth attack surface mapping and subdomain enumeration (OWASP)",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "subdomain",
+        "active",
+        "owasp"
+      ],
+      "homepage": "https://github.com/owasp-amass/amass",
+      "latest_version": "v5.1.1",
+      "versions": [
+        {
+          "version": "v5.1.1",
+          "package_schema_version": 1,
+          "package_url": "packages/amass/v5.1.1.tar.gz",
+          "digest": "sha256:4bbe9dc93580df282066f1d60ac14b3b2508e85dc52ebbb95d986554857eef63",
+          "size": 1165,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "owasp-amass",
+        "repo": "amass"
+      }
+    },
+    {
+      "id": "assetfinder",
+      "display_name": "Assetfinder",
+      "description": "Quick passive subdomain discovery from various public sources",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "subdomain",
+        "passive"
+      ],
+      "homepage": "https://github.com/tomnomnom/assetfinder",
+      "latest_version": "v0.0.0+external",
+      "versions": [
+        {
+          "version": "v0.0.0+external",
+          "package_schema_version": 1,
+          "package_url": "packages/assetfinder/v0.0.0+external.tar.gz",
+          "digest": "sha256:6eb5b5396b003f6b87f8ebcd4f33153923f8a845cc748a8b3d5043e73e0852a6",
+          "size": 1085,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "tomnomnom",
+        "repo": "assetfinder"
+      }
+    },
+    {
+      "id": "dnsx",
+      "display_name": "dnsx",
+      "description": "Fast DNS resolver and brute-forcer with wildcard filtering (projectdiscovery)",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "dns",
+        "active",
+        "projectdiscovery"
+      ],
+      "homepage": "https://github.com/projectdiscovery/dnsx",
+      "latest_version": "v1.2.3",
+      "versions": [
+        {
+          "version": "v1.2.3",
+          "package_schema_version": 1,
+          "package_url": "packages/dnsx/v1.2.3.tar.gz",
+          "digest": "sha256:09ca17043f8e63b0411818ee509a882d39e2e2123b52a17c07ded62fa8cd0c41",
+          "size": 1513,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "dnsx"
+      }
+    },
+    {
+      "id": "naabu",
+      "display_name": "Naabu",
+      "description": "Fast SYN/TCP port scanner (projectdiscovery)",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "network",
+        "ports",
+        "projectdiscovery"
+      ],
+      "homepage": "https://github.com/projectdiscovery/naabu",
+      "latest_version": "v2.5.0",
+      "versions": [
+        {
+          "version": "v2.5.0",
+          "package_schema_version": 1,
+          "package_url": "packages/naabu/v2.5.0.tar.gz",
+          "digest": "sha256:a5eb7433a7827af4904ad22707b1c85307cd5c3c93c52955af9d904db872edb8",
+          "size": 1304,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "naabu"
+      }
+    },
+    {
+      "id": "massdns",
+      "display_name": "MassDNS",
+      "description": "High-performance bulk DNS resolver for large subdomain lists",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "dns",
+        "active",
+        "bulk"
+      ],
+      "homepage": "https://github.com/blechschmidt/massdns",
+      "latest_version": "v1.1.0",
+      "versions": [
+        {
+          "version": "v1.1.0",
+          "package_schema_version": 1,
+          "package_url": "packages/massdns/v1.1.0.tar.gz",
+          "digest": "sha256:c6d6789b8c4ca46b67434416c0a86f78a46b8310eb6346861cccc823144df5f4",
+          "size": 1218,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "blechschmidt",
+        "repo": "massdns"
+      }
+    },
+    {
+      "id": "chaos-client",
+      "display_name": "Chaos Client",
+      "description": "projectdiscovery Chaos DB feed \u2014 passive subdomain dataset access",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "subdomain",
+        "passive",
+        "projectdiscovery"
+      ],
+      "homepage": "https://github.com/projectdiscovery/chaos-client",
+      "latest_version": "v0.5.2",
+      "versions": [
+        {
+          "version": "v0.5.2",
+          "package_schema_version": 1,
+          "package_url": "packages/chaos-client/v0.5.2.tar.gz",
+          "digest": "sha256:1c1b349140268f664f21bee08ca09fcc5aaa37db6086808cf11f7297d2915f51",
+          "size": 1402,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "chaos-client"
+      }
+    },
+    {
+      "id": "nuclei",
+      "display_name": "Nuclei",
+      "description": "Template-based vulnerability scanner (projectdiscovery)",
+      "category": "web",
+      "tags": [
+        "web",
+        "vuln",
+        "active",
+        "templates",
+        "projectdiscovery"
+      ],
+      "homepage": "https://github.com/projectdiscovery/nuclei",
+      "latest_version": "v3.7.1",
+      "versions": [
+        {
+          "version": "v3.7.1",
+          "package_schema_version": 1,
+          "package_url": "packages/nuclei/v3.7.1.tar.gz",
+          "digest": "sha256:1bf3051d2b15edaa4cd2b3fefc9140f4535c856358bf7d27928ce722ea956357",
+          "size": 1569,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "nuclei"
+      }
+    },
+    {
+      "id": "ffuf",
+      "display_name": "ffuf",
+      "description": "Fast web fuzzer for directories, files, parameters, and vhosts",
+      "category": "web",
+      "tags": [
+        "web",
+        "fuzzing",
+        "active",
+        "brute-force"
+      ],
+      "homepage": "https://github.com/ffuf/ffuf",
+      "latest_version": "v2.1.0",
+      "versions": [
+        {
+          "version": "v2.1.0",
+          "package_schema_version": 1,
+          "package_url": "packages/ffuf/v2.1.0.tar.gz",
+          "digest": "sha256:6bdb4efcbf34b904936c5885dd2f8142f7dcaf5a3b8ae5e5ee01e2be9a6bafd9",
+          "size": 1518,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "ffuf",
+        "repo": "ffuf"
+      }
+    },
+    {
+      "id": "feroxbuster",
+      "display_name": "Feroxbuster",
+      "description": "Fast recursive directory and file brute-forcer for web applications",
+      "category": "web",
+      "tags": [
+        "web",
+        "fuzzing",
+        "active",
+        "brute-force",
+        "recursive"
+      ],
+      "homepage": "https://github.com/epi052/feroxbuster",
+      "latest_version": "v2.13.1",
+      "versions": [
+        {
+          "version": "v2.13.1",
+          "package_schema_version": 1,
+          "package_url": "packages/feroxbuster/v2.13.1.tar.gz",
+          "digest": "sha256:4ee0850696cf56cf691f8202258fb3f01fb65e4f6490b1e7216d9cd2569f0d36",
+          "size": 1276,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "epi052",
+        "repo": "feroxbuster"
+      }
+    },
+    {
+      "id": "katana",
+      "display_name": "Katana",
+      "description": "Fast web crawler with JavaScript parsing support (projectdiscovery)",
+      "category": "web",
+      "tags": [
+        "web",
+        "crawler",
+        "active",
+        "projectdiscovery"
+      ],
+      "homepage": "https://github.com/projectdiscovery/katana",
+      "latest_version": "v1.5.0",
+      "versions": [
+        {
+          "version": "v1.5.0",
+          "package_schema_version": 1,
+          "package_url": "packages/katana/v1.5.0.tar.gz",
+          "digest": "sha256:781874278117be8062346d6213d2e09721f750d7f663b61c9616616a107a0785",
+          "size": 1234,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "katana"
+      }
+    },
+    {
+      "id": "dalfox",
+      "display_name": "Dalfox",
+      "description": "Fast parameter-based XSS scanner and utility",
+      "category": "web",
+      "tags": [
+        "web",
+        "xss",
+        "active",
+        "scanning"
+      ],
+      "homepage": "https://github.com/hahwul/dalfox",
+      "latest_version": "v2.12.0",
+      "versions": [
+        {
+          "version": "v2.12.0",
+          "package_schema_version": 1,
+          "package_url": "packages/dalfox/v2.12.0.tar.gz",
+          "digest": "sha256:a05c4f4509082ab5fa5926e7df58ae379279be44450081db437e84bd89869b57",
+          "size": 1312,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "hahwul",
+        "repo": "dalfox"
+      }
+    },
+    {
+      "id": "sqlmap",
+      "display_name": "sqlmap",
+      "description": "Automatic SQL injection detection and exploitation tool",
+      "category": "web",
+      "tags": [
+        "web",
+        "sqli",
+        "active",
+        "exploitation"
+      ],
+      "homepage": "https://github.com/sqlmapproject/sqlmap",
+      "latest_version": "1.10",
+      "versions": [
+        {
+          "version": "1.10",
+          "package_schema_version": 1,
+          "package_url": "packages/sqlmap/1.10.tar.gz",
+          "digest": "sha256:15078a51367b9c288af15b5e05432c4ae3bc0ddcac267b9a7c61ad6cc934834b",
+          "size": 1398,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "sqlmapproject",
+        "repo": "sqlmap"
+      }
+    },
+    {
+      "id": "gau",
+      "display_name": "gau",
+      "description": "Fetch all known URLs from Wayback Machine, Common Crawl, and other sources",
+      "category": "web",
+      "tags": [
+        "web",
+        "recon",
+        "passive",
+        "urls",
+        "osint"
+      ],
+      "homepage": "https://github.com/lc/gau",
+      "latest_version": "v2.2.4",
+      "versions": [
+        {
+          "version": "v2.2.4",
+          "package_schema_version": 1,
+          "package_url": "packages/gau/v2.2.4.tar.gz",
+          "digest": "sha256:933f9d3c30043a718338989f32b3c36f52225aef722f0090e69099303125c79d",
+          "size": 1255,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "lc",
+        "repo": "gau"
+      }
+    },
+    {
+      "id": "waybackurls",
+      "display_name": "Waybackurls",
+      "description": "Pull all URLs archived for a domain from the Wayback Machine",
+      "category": "web",
+      "tags": [
+        "web",
+        "recon",
+        "passive",
+        "urls",
+        "wayback"
+      ],
+      "homepage": "https://github.com/tomnomnom/waybackurls",
+      "latest_version": "v0.1.0",
+      "versions": [
+        {
+          "version": "v0.1.0",
+          "package_schema_version": 1,
+          "package_url": "packages/waybackurls/v0.1.0.tar.gz",
+          "digest": "sha256:37599f7a1ecb742c7ec74666303ddc5058d39f07f8b38423126c0b3384d7ed06",
+          "size": 1099,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "tomnomnom",
+        "repo": "waybackurls"
+      }
+    },
+    {
+      "id": "nmap",
+      "display_name": "Nmap",
+      "description": "Classic network and port scanner with service detection",
+      "category": "network",
+      "tags": [
+        "network",
+        "ports",
+        "services",
+        "scanning"
+      ],
+      "homepage": "https://nmap.org",
+      "latest_version": "v0.0.0+external",
+      "versions": [
+        {
+          "version": "v0.0.0+external",
+          "package_schema_version": 1,
+          "package_url": "packages/nmap/v0.0.0+external.tar.gz",
+          "digest": "sha256:5fd0cca213d9ef1a5ed032c6b0946cc8114d103a436b1dbd2fe618b603b6598b",
+          "size": 1386,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "nmap",
+        "repo": "nmap"
+      }
+    },
+    {
+      "id": "masscan",
+      "display_name": "Masscan",
+      "description": "High-speed asynchronous port scanner capable of scanning the internet",
+      "category": "network",
+      "tags": [
+        "network",
+        "ports",
+        "scanning",
+        "high-speed"
+      ],
+      "homepage": "https://github.com/robertdavidgraham/masscan",
+      "latest_version": "1.3.2",
+      "versions": [
+        {
+          "version": "1.3.2",
+          "package_schema_version": 1,
+          "package_url": "packages/masscan/1.3.2.tar.gz",
+          "digest": "sha256:4786a987a5bbe0ab696b706959785db6a4136266cfe9420ce4266ef05bfc8166",
+          "size": 1228,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "robertdavidgraham",
+        "repo": "masscan"
+      }
+    },
+    {
+      "id": "rustscan",
+      "display_name": "RustScan",
+      "description": "Fast Rust-based port scanner with automatic Nmap integration",
+      "category": "network",
+      "tags": [
+        "network",
+        "ports",
+        "scanning",
+        "rust"
+      ],
+      "homepage": "https://github.com/RustScan/RustScan",
+      "latest_version": "2.4.1",
+      "versions": [
+        {
+          "version": "2.4.1",
+          "package_schema_version": 1,
+          "package_url": "packages/rustscan/2.4.1.tar.gz",
+          "digest": "sha256:b1e4895d9d25c2df5c29812c578f730c73a9932f58d91236db3437da152b3d27",
+          "size": 1175,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "RustScan",
+        "repo": "RustScan"
+      }
+    },
+    {
+      "id": "cloudfox",
+      "display_name": "CloudFox",
+      "description": "Cloud attack surface mapper for AWS, Azure, and GCP environments",
+      "category": "cloud",
+      "tags": [
+        "cloud",
+        "aws",
+        "azure",
+        "gcp",
+        "recon",
+        "attack-surface"
+      ],
+      "homepage": "https://github.com/BishopFox/cloudfox",
+      "latest_version": "v2.0.1",
+      "versions": [
+        {
+          "version": "v2.0.1",
+          "package_schema_version": 1,
+          "package_url": "packages/cloudfox/v2.0.1.tar.gz",
+          "digest": "sha256:7b3e036fa048e3ffb5f984a9ea799b09d5dfa61f99df91dd7cf7f2b8c7cd20d7",
+          "size": 1269,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "BishopFox",
+        "repo": "cloudfox"
+      }
+    },
+    {
+      "id": "s3scanner",
+      "display_name": "S3Scanner",
+      "description": "Public S3 bucket enumerator and content lister",
+      "category": "cloud",
+      "tags": [
+        "cloud",
+        "aws",
+        "s3",
+        "recon",
+        "passive"
+      ],
+      "homepage": "https://github.com/sa7mon/S3Scanner",
+      "latest_version": "v3.1.1",
+      "versions": [
+        {
+          "version": "v3.1.1",
+          "package_schema_version": 1,
+          "package_url": "packages/s3scanner/v3.1.1.tar.gz",
+          "digest": "sha256:d29d86eff7112808afbb14cd871868fd5f02b00adcfe1a564b63a308df1ed15c",
+          "size": 1155,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "sa7mon",
+        "repo": "S3Scanner"
+      }
+    },
+    {
+      "id": "trufflehog",
+      "display_name": "TruffleHog",
+      "description": "Secrets and credential scanner for git repos, S3, filesystems, and more",
+      "category": "cloud",
+      "tags": [
+        "cloud",
+        "secrets",
+        "credentials",
+        "git",
+        "passive"
+      ],
+      "homepage": "https://github.com/trufflesecurity/trufflehog",
+      "latest_version": "v3.94.3",
+      "versions": [
+        {
+          "version": "v3.94.3",
+          "package_schema_version": 1,
+          "package_url": "packages/trufflehog/v3.94.3.tar.gz",
+          "digest": "sha256:2e1d0f9fcc5425885e5a50dd41a64ebc6cfeb48bc2ae79c28a08b99605a809f5",
+          "size": 1595,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "trufflesecurity",
+        "repo": "trufflehog"
+      }
+    },
+    {
+      "id": "theharvester",
+      "display_name": "theHarvester",
+      "description": "OSINT tool for gathering emails, subdomains, IPs, and URLs from public sources",
+      "category": "osint",
+      "tags": [
+        "osint",
+        "passive",
+        "email",
+        "subdomain",
+        "recon"
+      ],
+      "homepage": "https://github.com/laramies/theHarvester",
+      "latest_version": "4.10.1",
+      "versions": [
+        {
+          "version": "4.10.1",
+          "package_schema_version": 1,
+          "package_url": "packages/theharvester/4.10.1.tar.gz",
+          "digest": "sha256:c111ac22e6f7f867bcf7c732bf8a4617ec5acc397b4f8e677704d412c553e7ac",
+          "size": 1203,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "laramies",
+        "repo": "theHarvester"
+      }
+    },
+    {
+      "id": "shodan",
+      "display_name": "Shodan CLI",
+      "description": "Shodan search engine CLI for passive host and service intelligence",
+      "category": "osint",
+      "tags": [
+        "osint",
+        "passive",
+        "shodan",
+        "network",
+        "intelligence"
+      ],
+      "homepage": "https://cli.shodan.io",
+      "latest_version": "v0.0.0+external",
+      "versions": [
+        {
+          "version": "v0.0.0+external",
+          "package_schema_version": 1,
+          "package_url": "packages/shodan/v0.0.0+external.tar.gz",
+          "digest": "sha256:6798fcbbfc2b87882c354495c0e85ce0575bd6299c9931737b7df14ea0f4ecbd",
+          "size": 1173,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "Shodan",
+        "repo": "shodan-python"
+      }
+    },
+    {
+      "id": "aircrack-ng",
+      "display_name": "Aircrack-ng",
+      "description": "WEP and WPA/WPA2 wireless network security audit suite",
+      "category": "wifi",
+      "tags": [
+        "wifi",
+        "wireless",
+        "wpa",
+        "wep",
+        "cracking",
+        "audit"
+      ],
+      "homepage": "https://www.aircrack-ng.org",
+      "latest_version": "1.7",
+      "versions": [
+        {
+          "version": "1.7",
+          "package_schema_version": 1,
+          "package_url": "packages/aircrack-ng/1.7.tar.gz",
+          "digest": "sha256:0ff4cd469d137a214364d80e3a81de0fe737fbdb5f3be47867f6db8c8e2997ac",
+          "size": 1211,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "aircrack-ng",
+        "repo": "aircrack-ng"
+      }
+    },
+    {
+      "id": "hashcat",
+      "display_name": "Hashcat",
+      "description": "GPU-accelerated password recovery and hash cracking tool",
+      "category": "wifi",
+      "tags": [
+        "wifi",
+        "cracking",
+        "passwords",
+        "gpu",
+        "hashes"
+      ],
+      "homepage": "https://hashcat.net",
+      "latest_version": "v7.1.2",
+      "versions": [
+        {
+          "version": "v7.1.2",
+          "package_schema_version": 1,
+          "package_url": "packages/hashcat/v7.1.2.tar.gz",
+          "digest": "sha256:d4761880d175c0144c87bc4c90ed89a3c503943ce6064f62cc4b0a3e87b98ba2",
+          "size": 1309,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "hashcat",
+        "repo": "hashcat"
+      }
+    },
+    {
+      "id": "anew",
+      "display_name": "anew",
+      "description": "Append-only deduplicated output tool for pipeline use",
+      "category": "util",
+      "tags": [
+        "util",
+        "pipeline",
+        "dedup"
+      ],
+      "homepage": "https://github.com/tomnomnom/anew",
+      "latest_version": "v0.1.1",
+      "versions": [
+        {
+          "version": "v0.1.1",
+          "package_schema_version": 1,
+          "package_url": "packages/anew/v0.1.1.tar.gz",
+          "digest": "sha256:b856e01a7cd2c99177caef97843136cfc263d473a63ff6facfbf15923b4c89f5",
+          "size": 1092,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "tomnomnom",
+        "repo": "anew"
+      }
+    },
+    {
+      "id": "interactsh-client",
+      "display_name": "Interactsh Client",
+      "description": "Out-of-band interaction testing client (projectdiscovery)",
+      "category": "util",
+      "tags": [
+        "util",
+        "oob",
+        "oast",
+        "projectdiscovery",
+        "blind"
+      ],
+      "homepage": "https://github.com/projectdiscovery/interactsh",
+      "latest_version": "v1.3.1",
+      "versions": [
+        {
+          "version": "v1.3.1",
+          "package_schema_version": 1,
+          "package_url": "packages/interactsh-client/v1.3.1.tar.gz",
+          "digest": "sha256:6969542235b5b7f5afd19b04d2ec30ad6a5a9916858a042ede3a6154b1a6216f",
+          "size": 1449,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "interactsh"
+      }
+    },
+    {
+      "id": "notify",
+      "display_name": "Notify",
+      "description": "Pipe tool output to Slack, Discord, Telegram, and other channels (projectdiscovery)",
+      "category": "util",
+      "tags": [
+        "util",
+        "notifications",
+        "pipeline",
+        "projectdiscovery",
+        "slack",
+        "discord"
+      ],
+      "homepage": "https://github.com/projectdiscovery/notify",
+      "latest_version": "v1.0.7",
+      "versions": [
+        {
+          "version": "v1.0.7",
+          "package_schema_version": 1,
+          "package_url": "packages/notify/v1.0.7.tar.gz",
+          "digest": "sha256:9049bb7cfae8a54b700e10e7ff02972040f31224f69552bfc83428dae9be184d",
+          "size": 1426,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T20:46:12Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "notify"
       }
     }
   ]
