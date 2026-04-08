@@ -44,9 +44,12 @@ The script loads the key from, in order:
 
 ### Adding a new tool version
 
-1. Update the version constant or release lookup in `gen.py`.
+1. Update `SUBFINDER_VERSION` or `HTTPX_VERSION` at the top of `gen.py`.
 2. Run `python3 gen.py` to rebuild tarballs, re-sign, and rewrite `index.json`.
 3. Commit the updated artifacts.
+
+Setting a version constant to `None` resolves the latest GitHub release and
+prints the resolved version — useful for discovering new releases before pinning.
 
 ## Signature scheme
 

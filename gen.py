@@ -13,12 +13,15 @@ Key loading order (first wins):
   1. CELEBR8_REGISTRY_SIGNING_KEY env var  — PEM content of the private key
   2. .signing_key.pem in the repo root     — git-ignored local file
 
-The signing key is NEVER committed to this repo.
-To bootstrap a new key: delete/skip the env var and the local file; the
-script will generate one and print the Rust public key literal to embed in
-src/registry/signature.rs.
+The signing key is NEVER committed to this repo. Missing key material is a
+hard error — run with --bootstrap to generate a fresh keypair on first setup.
+
+Tarballs are deterministic: gzip mtime=0, tar entry mtime=0, JSON keys sorted.
+Identical inputs produce bit-identical packages and therefore identical digests.
+Only index.json's generated_at and the signature change between runs.
 """
 
+import gzip
 import hashlib
 import io
 import json
@@ -32,13 +35,29 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
+# ── Pinned tool versions ───────────────────────────────────────────────────────
+# Set a version string to pin to that exact release.
+# Set to None to resolve the latest release from GitHub (and update the pin).
+SUBFINDER_VERSION: str | None = "v2.13.0"
+HTTPX_VERSION: str | None = "v1.9.0"
+
 # ── Key management ─────────────────────────────────────────────────────────────
 
 KEY_FILE = Path(__file__).parent / ".signing_key.pem"
 _KEY_ENV = "CELEBR8_REGISTRY_SIGNING_KEY"
 
 
-def load_or_generate_key() -> Ed25519PrivateKey:
+def load_key(bootstrap: bool = False) -> Ed25519PrivateKey:
+    """Load the signing key from env var or local file.
+
+    Args:
+        bootstrap: If True and no key is found, generate a new keypair, save
+                   it to .signing_key.pem, and print the Rust public key literal.
+                   If False (default) and no key is found, exit with an error.
+
+    Raises:
+        SystemExit: When no key material is available and bootstrap=False.
+    """
     # 1. Env var (CI / GitHub Actions secret)
     pem_env = os.environ.get(_KEY_ENV)
     if pem_env:
@@ -53,7 +72,17 @@ def load_or_generate_key() -> Ed25519PrivateKey:
         print(f"[keygen] Loaded key from {KEY_FILE}", file=sys.stderr)
         return key  # type: ignore[return-value]
 
-    # 3. Generate a new key (first-time bootstrap)
+    # 3. No key found
+    if not bootstrap:
+        print(
+            f"[error] No signing key found.\n"
+            f"  Set {_KEY_ENV} env var (PEM content) or place key at {KEY_FILE}.\n"
+            f"  To generate a fresh keypair on first setup: python3 gen.py --bootstrap",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Bootstrap: generate and save
     key = Ed25519PrivateKey.generate()
     pem = key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -62,10 +91,10 @@ def load_or_generate_key() -> Ed25519PrivateKey:
     )
     KEY_FILE.write_bytes(pem)
     KEY_FILE.chmod(0o600)
-    print(f"[keygen] Generated new key, saved to {KEY_FILE}", file=sys.stderr)
+    print(f"[keygen] Generated new keypair, saved to {KEY_FILE}", file=sys.stderr)
     print(
-        f"[keygen] IMPORTANT: back up {KEY_FILE} and add its content to the "
-        f"{_KEY_ENV} secret in CI.",
+        f"[keygen] IMPORTANT: back up {KEY_FILE} and store its content in\n"
+        f"         the {_KEY_ENV} GitHub Actions secret before publishing.",
         file=sys.stderr,
     )
     return key  # type: ignore[return-value]
@@ -181,22 +210,33 @@ def get_checksums(release: dict) -> dict[str, str]:
 # ── Package tarball builder ────────────────────────────────────────────────────
 
 def build_tarball(manifest: dict, yaml_content: str, tool_id: str) -> bytes:
-    """Build a tar.gz with exactly manifest.json and <tool_id>.yaml."""
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
-        # manifest.json
-        manifest_bytes = json.dumps(manifest, indent=2).encode()
-        info = tarfile.TarInfo(name="manifest.json")
-        info.size = len(manifest_bytes)
-        info.type = tarfile.REGTYPE
-        tf.addfile(info, io.BytesIO(manifest_bytes))
+    """Build a deterministic tar.gz with exactly manifest.json and <tool_id>.yaml.
 
-        # <tool_id>.yaml
-        yaml_bytes = yaml_content.encode()
-        info = tarfile.TarInfo(name=f"{tool_id}.yaml")
-        info.size = len(yaml_bytes)
-        info.type = tarfile.REGTYPE
-        tf.addfile(info, io.BytesIO(yaml_bytes))
+    Determinism guarantees:
+    - gzip header mtime=0 (via GzipFile(mtime=0))
+    - tar entry mtime=0 on every TarInfo
+    - manifest.json serialized with sorted keys and no trailing whitespace variation
+
+    Identical inputs produce bit-identical output, so digests are stable across runs.
+    """
+    buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz:
+        with tarfile.open(fileobj=gz, mode="w|") as tf:
+            # manifest.json — sort_keys ensures deterministic field order
+            manifest_bytes = json.dumps(manifest, indent=2, sort_keys=True).encode()
+            info = tarfile.TarInfo(name="manifest.json")
+            info.size = len(manifest_bytes)
+            info.mtime = 0
+            info.type = tarfile.REGTYPE
+            tf.addfile(info, io.BytesIO(manifest_bytes))
+
+            # <tool_id>.yaml
+            yaml_bytes = yaml_content.encode()
+            info = tarfile.TarInfo(name=f"{tool_id}.yaml")
+            info.size = len(yaml_bytes)
+            info.mtime = 0
+            info.type = tarfile.REGTYPE
+            tf.addfile(info, io.BytesIO(yaml_bytes))
 
     return buf.getvalue()
 
@@ -349,25 +389,43 @@ artifacts:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Regenerate the celebr8-tools registry.")
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Generate a fresh Ed25519 keypair on first setup (hard error otherwise).",
+    )
+    args = parser.parse_args()
+
     base_dir = Path(__file__).parent
     cli_version = "0.1.0"
 
     # 1. Key
-    key = load_or_generate_key()
+    key = load_key(bootstrap=args.bootstrap)
     print("\n[pubkey] Rust array for signature.rs:")
     print(pubkey_rust_array(key))
     print()
 
-    # 2. Fetch release info
-    print("[github] Fetching subfinder latest release...", file=sys.stderr)
-    sf_release = get_release_info("projectdiscovery/subfinder")
+    # 2. Fetch release info (use pinned versions when set)
+    print(
+        f"[github] Resolving subfinder "
+        f"{'pinned ' + SUBFINDER_VERSION if SUBFINDER_VERSION else 'latest'}...",
+        file=sys.stderr,
+    )
+    sf_release = get_release_info("projectdiscovery/subfinder", SUBFINDER_VERSION)
     sf_version = sf_release["tag_name"]
-    print(f"[github] subfinder latest: {sf_version}", file=sys.stderr)
+    print(f"[github] subfinder: {sf_version}", file=sys.stderr)
 
-    print("[github] Fetching httpx latest release...", file=sys.stderr)
-    hx_release = get_release_info("projectdiscovery/httpx")
+    print(
+        f"[github] Resolving httpx "
+        f"{'pinned ' + HTTPX_VERSION if HTTPX_VERSION else 'latest'}...",
+        file=sys.stderr,
+    )
+    hx_release = get_release_info("projectdiscovery/httpx", HTTPX_VERSION)
     hx_version = hx_release["tag_name"]
-    print(f"[github] httpx latest: {hx_version}", file=sys.stderr)
+    print(f"[github] httpx: {hx_version}", file=sys.stderr)
 
     # 3. Checksums (sha256 of each platform zip, from checksums.txt)
     print("[checksums] Fetching subfinder checksums...", file=sys.stderr)
