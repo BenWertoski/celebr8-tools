@@ -1,0 +1,101 @@
+id: nmap
+version: 1
+name: Nmap
+description: Classic network and port scanner with service detection
+binary: nmap
+category: network
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 900
+tags: [network, ports, services, scanning]
+
+verify:
+  argv: ["nmap", "--version"]
+
+ai_context:
+  summary: >
+    Use Nmap for authoritative port scanning, service fingerprinting, OS
+    detection, and script-based checks against scoped hosts. The gold standard
+    for network reconnaissance — slower than masscan/naabu but richer output.
+  when_to_use:
+    - service version detection (-sV) after port discovery
+    - running specific NSE scripts for targeted checks
+    - OS fingerprinting on discovered hosts
+    - generating scan output for reporting (XML/grepable)
+  expected_output: text
+  follow_up_hints:
+    - use -oX for XML output importable into reporting tools
+    - combine with nuclei for service-specific vulnerability checks
+    - use -sC for default NSE scripts after confirming authorization
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: target
+    type: target
+    required: true
+    positional: true
+    description: Scoped host, CIDR, or domain to scan
+
+  - name: ports
+    type: string
+    required: false
+    flag: "-p"
+    description: Port range (e.g. 1-1000, 80,443, or - for all)
+
+  - name: scan_type
+    type: enum
+    required: false
+    flag: ""
+    values: ["-sT", "-sS", "-sU", "-sA"]
+    description: Scan type (TCP connect, SYN, UDP, ACK)
+
+  - name: service_detection
+    type: bool
+    required: false
+    flag: "-sV"
+    description: Enable service/version detection
+
+  - name: os_detection
+    type: bool
+    required: false
+    flag: "-O"
+    description: Enable OS detection (requires root)
+
+  - name: scripts
+    type: string
+    required: false
+    flag: "--script"
+    description: NSE script(s) to run
+
+  - name: timing
+    type: enum
+    required: false
+    flag: "-T"
+    values: ["0", "1", "2", "3", "4", "5"]
+    description: Timing template (0=paranoid, 5=insane)
+
+  - name: output_xml
+    type: string
+    required: false
+    flag: "-oX"
+    description: XML output file path
+
+  - name: output_grepable
+    type: string
+    required: false
+    flag: "-oG"
+    description: Grepable output file path
+
+artifacts:
+  - kind: raw_stdout
+    label: scan-output
+  - kind: normalized_ports
+    label: open-ports

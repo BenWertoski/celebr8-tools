@@ -1,0 +1,79 @@
+id: naabu
+version: 1
+name: Naabu
+description: Fast SYN/TCP port scanner (projectdiscovery)
+binary: naabu
+category: recon
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [recon, network, ports, projectdiscovery]
+
+verify:
+  argv: ["naabu", "-version"]
+
+ai_context:
+  summary: >
+    Use Naabu to quickly enumerate open ports on scoped hosts. Designed
+    to pair with other projectdiscovery tools — pipe subfinder/dnsx output
+    in and httpx/nuclei output out.
+  when_to_use:
+    - port enumeration after subdomain/host discovery
+    - building a service inventory before web or vulnerability scanning
+    - faster alternative to nmap when only port presence is needed
+  expected_output: text
+  follow_up_hints:
+    - pipe open host:port pairs directly to httpx for HTTP probing
+    - use -nmap flag to emit nmap-compatible XML for further analysis
+    - store port list as evidence artifact before proceeding
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: host
+    type: target
+    required: false
+    flag: "-host"
+    description: Single host or comma-separated list to scan
+
+  - name: list
+    type: string
+    required: false
+    flag: "-l"
+    description: File containing hosts to scan
+
+  - name: ports
+    type: string
+    required: false
+    flag: "-p"
+    description: Ports to scan (e.g. 80,443 or 1-1000 or top-100)
+
+  - name: top_ports
+    type: enum
+    required: false
+    flag: "-top-ports"
+    values: ["100", "1000"]
+    description: Scan top N most common ports
+
+  - name: threads
+    type: string
+    required: false
+    flag: "-c"
+    description: Number of concurrent goroutines
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print host:port results
+
+artifacts:
+  - kind: raw_stdout
+    label: open-ports

@@ -1,0 +1,72 @@
+id: gau
+version: 1
+name: gau
+description: Fetch all known URLs from Wayback Machine, Common Crawl, and other sources
+binary: gau
+category: web
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [web, recon, passive, urls, osint]
+
+verify:
+  argv: ["gau", "--version"]
+
+ai_context:
+  summary: >
+    Use gau to fetch all historically known URLs for a domain from the Wayback
+    Machine, Common Crawl, AlienVault OTX, and URLScan. Entirely passive —
+    no requests are sent to the target.
+  when_to_use:
+    - building a URL corpus before active crawling
+    - discovering old/forgotten endpoints, backup files, or API paths
+    - supplementing live crawl output with archived URL coverage
+  expected_output: text
+  follow_up_hints:
+    - filter for interesting extensions with grep (e.g. .php, .env, .bak)
+    - pipe into dalfox or nuclei for parameter-based scanning
+    - use --blacklist to exclude static asset extensions and reduce noise
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    positional: true
+    description: Target domain to fetch URLs for
+
+  - name: blacklist
+    type: string
+    required: false
+    flag: "--blacklist"
+    description: Comma-separated extensions to exclude (e.g. png,jpg,gif)
+
+  - name: providers
+    type: string
+    required: false
+    flag: "--providers"
+    description: Comma-separated providers to use (wayback,commoncrawl,otx,urlscan)
+
+  - name: threads
+    type: string
+    required: false
+    flag: "--threads"
+    description: Number of parallel provider fetches
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for discovered URLs
+
+artifacts:
+  - kind: raw_stdout
+    label: known-urls

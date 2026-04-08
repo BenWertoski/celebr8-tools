@@ -1,0 +1,53 @@
+id: assetfinder
+version: 1
+name: Assetfinder
+description: Quick passive subdomain discovery from various public sources
+binary: assetfinder
+category: recon
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 120
+tags: [recon, subdomain, passive]
+
+verify:
+  argv: ["assetfinder", "--help"]
+
+ai_context:
+  summary: >
+    Use Assetfinder for fast passive subdomain discovery. Queries public
+    sources including crt.sh, HackerTarget, Wayback Machine, and others
+    without touching the target directly.
+  when_to_use:
+    - quick initial recon before committing to deeper enumeration
+    - when a lightweight passive sweep is sufficient
+    - supplementing subfinder with additional source coverage
+  expected_output: text
+  follow_up_hints:
+    - pipe output through anew to deduplicate against prior runs
+    - send results to dnsx or httpx for live host verification
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    positional: true
+    description: Root domain to discover assets for
+
+  - name: subs_only
+    type: bool
+    required: false
+    flag: "--subs-only"
+    description: Only return subdomains, not related domains
+
+artifacts:
+  - kind: raw_stdout
+    label: subdomain-list

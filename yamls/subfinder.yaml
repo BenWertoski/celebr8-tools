@@ -1,0 +1,59 @@
+id: subfinder
+version: 1
+name: Subfinder
+description: Fast passive subdomain enumeration tool
+binary: subfinder
+category: recon
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [recon, subdomain, passive]
+
+verify:
+  argv: ["subfinder", "-version"]
+
+ai_context:
+  summary: >
+    Use Subfinder to enumerate subdomains passively for a scoped domain.
+    It queries multiple OSINT sources without sending requests to the target.
+  when_to_use:
+    - initial recon phase before active scanning
+    - building a subdomain inventory for a target domain
+    - discovering asset scope before web/API testing
+  expected_output: text
+  follow_up_hints:
+    - pipe discovered subdomains to httpx for live host detection
+    - store subdomain list as evidence artifact before proceeding
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    positional: false
+    flag: "-d"
+    description: Target domain to enumerate subdomains for
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file path for discovered subdomains
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print subdomains in output
+
+artifacts:
+  - kind: raw_stdout
+    label: subdomain-list

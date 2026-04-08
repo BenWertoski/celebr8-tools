@@ -1,0 +1,61 @@
+id: shodan
+version: 1
+name: Shodan CLI
+description: Shodan search engine CLI for passive host and service intelligence
+binary: shodan
+category: osint
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 120
+tags: [osint, passive, shodan, network, intelligence]
+
+verify:
+  argv: ["shodan", "version"]
+
+ai_context:
+  summary: >
+    Use the Shodan CLI to query Shodan's passive scan database for intelligence
+    on scoped hosts and IP ranges. Retrieves open ports, banners, CVEs, and
+    historical data without sending any traffic to the target.
+  when_to_use:
+    - gathering passive service and port intelligence for scoped IP addresses
+    - checking whether a target host has known CVEs in Shodan's database
+    - discovering internet-exposed services before active scanning
+  expected_output: text
+  follow_up_hints:
+    - use 'shodan host <ip>' for detailed host intelligence
+    - cross-reference CVEs found by Shodan with nuclei template selection
+    - requires a valid Shodan API key configured via 'shodan init'
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "SHODAN_API_KEY=[^\\s]+"
+
+parameters:
+  - name: subcommand
+    type: string
+    required: true
+    positional: true
+    description: Shodan subcommand (e.g. host, search, count, stats)
+
+  - name: target
+    type: target
+    required: false
+    positional: true
+    description: IP address, hostname, or search query
+
+  - name: limit
+    type: string
+    required: false
+    flag: "--limit"
+    description: Limit the number of search results
+
+artifacts:
+  - kind: raw_stdout
+    label: shodan-results

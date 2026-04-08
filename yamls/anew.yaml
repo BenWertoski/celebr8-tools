@@ -1,0 +1,53 @@
+id: anew
+version: 1
+name: anew
+description: Append-only deduplicated output tool for pipeline use
+binary: anew
+category: util
+risk_level: low
+requires_scope: false
+requires_confirmation: false
+max_runtime_secs: 30
+tags: [util, pipeline, dedup]
+
+verify:
+  argv: ["anew", "-h"]
+
+ai_context:
+  summary: >
+    Use anew to append unique lines from stdin to a file, printing only the
+    lines that are new (not already in the file). Essential for incremental
+    recon pipelines where tools run multiple times against growing target lists.
+  when_to_use:
+    - deduplicating tool output before storing to an accumulation file
+    - chaining recon tools where only new results should be forwarded
+    - building growing target lists across multiple tool runs
+  expected_output: text
+  follow_up_hints:
+    - place anew between tools in a pipeline (e.g. subfinder | anew hosts.txt | httpx)
+    - the output file acts as a seen-set across pipeline runs
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: false
+  retain_artifacts: false
+  redact_patterns: []
+
+parameters:
+  - name: output_file
+    type: string
+    required: true
+    positional: true
+    description: File to append new lines to (created if absent)
+
+  - name: dry_run
+    type: bool
+    required: false
+    flag: "-d"
+    description: Print new lines without writing to file
+
+artifacts:
+  - kind: raw_stdout
+    label: new-lines

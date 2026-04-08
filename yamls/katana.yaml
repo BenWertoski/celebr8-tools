@@ -1,0 +1,84 @@
+id: katana
+version: 1
+name: Katana
+description: Fast web crawler with JavaScript parsing support (projectdiscovery)
+binary: katana
+category: web
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [web, crawler, active, projectdiscovery]
+
+verify:
+  argv: ["katana", "-version"]
+
+ai_context:
+  summary: >
+    Use Katana to crawl a scoped web application and extract all reachable
+    URLs including those found in JavaScript. Supports headless browser mode
+    for JavaScript-heavy SPAs.
+  when_to_use:
+    - building a complete URL inventory of a scoped web application
+    - extracting API endpoints from JavaScript bundles
+    - feeding discovered URLs into nuclei, ffuf, or dalfox
+  expected_output: text
+  follow_up_hints:
+    - pipe output to gau/waybackurls to merge with archived URLs
+    - filter to specific extensions with -extension to focus on JS or API paths
+    - use -headless for JavaScript-heavy applications
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: url
+    type: target
+    required: true
+    flag: "-u"
+    description: Target URL to crawl
+
+  - name: depth
+    type: string
+    required: false
+    flag: "-d"
+    description: Maximum crawl depth
+
+  - name: headless
+    type: bool
+    required: false
+    flag: "-headless"
+    description: Enable headless browser crawling for JS-heavy sites
+
+  - name: scope
+    type: string
+    required: false
+    flag: "-cs"
+    description: Custom scope regex to restrict crawl
+
+  - name: js_crawl
+    type: bool
+    required: false
+    flag: "-jc"
+    description: Parse and crawl JavaScript files
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for discovered URLs
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print discovered URLs
+
+artifacts:
+  - kind: raw_stdout
+    label: crawled-urls

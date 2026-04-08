@@ -1,0 +1,67 @@
+id: amass
+version: 1
+name: Amass
+description: In-depth attack surface mapping and subdomain enumeration (OWASP)
+binary: amass
+category: recon
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [recon, subdomain, active, owasp]
+
+verify:
+  argv: ["amass", "-version"]
+
+ai_context:
+  summary: >
+    Use Amass to perform comprehensive subdomain enumeration combining passive
+    OSINT sources with optional active DNS resolution and brute-forcing.
+    More thorough than subfinder but slower and noisier.
+  when_to_use:
+    - deep recon phase where passive results are insufficient
+    - building a complete subdomain inventory for a wide scope engagement
+    - operator explicitly requests active enumeration
+  expected_output: text
+  follow_up_hints:
+    - pipe results to dnsx to resolve and filter live hosts
+    - cross-reference with subfinder passive results to find gaps
+    - store enumeration DB for incremental future runs
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    positional: false
+    flag: "-d"
+    description: Target domain to enumerate subdomains for
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for discovered names
+
+  - name: passive
+    type: bool
+    required: false
+    flag: "-passive"
+    description: Only use passive data sources, no DNS resolution
+
+  - name: config
+    type: string
+    required: false
+    flag: "-config"
+    description: Path to Amass config file with API keys
+
+artifacts:
+  - kind: raw_stdout
+    label: subdomain-list

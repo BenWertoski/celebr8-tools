@@ -1,0 +1,53 @@
+id: waybackurls
+version: 1
+name: Waybackurls
+description: Pull all URLs archived for a domain from the Wayback Machine
+binary: waybackurls
+category: web
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 180
+tags: [web, recon, passive, urls, wayback]
+
+verify:
+  argv: ["waybackurls", "-h"]
+
+ai_context:
+  summary: >
+    Use waybackurls to fetch all URLs the Wayback Machine has crawled for
+    a given domain. Lightweight passive tool — sends no traffic to the target.
+    Narrower source than gau but faster and focused on Wayback Machine data.
+  when_to_use:
+    - quick passive URL collection from Wayback Machine specifically
+    - when gau is unavailable or broader source coverage is not needed
+    - discovering historical endpoints, parameter names, and file paths
+  expected_output: text
+  follow_up_hints:
+    - combine output with gau for broader historical URL coverage
+    - filter interesting extensions with grep before further testing
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    positional: true
+    description: Target domain to fetch Wayback URLs for
+
+  - name: no_subs
+    type: bool
+    required: false
+    flag: "-no-subs"
+    description: Do not include subdomains in results
+
+artifacts:
+  - kind: raw_stdout
+    label: wayback-urls

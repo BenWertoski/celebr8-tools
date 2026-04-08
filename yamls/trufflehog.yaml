@@ -1,0 +1,75 @@
+id: trufflehog
+version: 1
+name: TruffleHog
+description: Secrets and credential scanner for git repos, S3, filesystems, and more
+binary: trufflehog
+category: cloud
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [cloud, secrets, credentials, git, passive]
+
+verify:
+  argv: ["trufflehog", "--version"]
+
+ai_context:
+  summary: >
+    Use TruffleHog to scan git repositories, S3 buckets, filesystems, or
+    other sources for secrets and credentials. Uses both pattern matching and
+    Shannon entropy analysis to find high-confidence secrets.
+  when_to_use:
+    - scanning a target's public git repository for leaked credentials
+    - checking exposed S3 buckets for committed secrets
+    - reviewing code acquired during an engagement for embedded API keys
+  expected_output: text
+  follow_up_hints:
+    - use --only-verified to reduce false positives in reporting
+    - store findings with full context (file, line, commit) as evidence
+    - cross-reference found credentials with cloudfox IAM findings
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "\"Raw\":\\s*\"[A-Za-z0-9+/=]{20,}\""
+    - "secret[=:][^\\s,}]+"
+
+parameters:
+  - name: source
+    type: enum
+    required: true
+    positional: true
+    values: ["git", "github", "gitlab", "s3", "filesystem", "docker"]
+    description: Source type to scan
+
+  - name: target
+    type: target
+    required: true
+    positional: true
+    description: Target repository URL, S3 URI, or filesystem path
+
+  - name: only_verified
+    type: bool
+    required: false
+    flag: "--only-verified"
+    description: Only report verified (confirmed live) credentials
+
+  - name: json
+    type: bool
+    required: false
+    flag: "--json"
+    description: Output findings as JSON
+
+  - name: concurrency
+    type: string
+    required: false
+    flag: "--concurrency"
+    description: Number of concurrent workers
+
+artifacts:
+  - kind: raw_stdout
+    label: secrets-findings

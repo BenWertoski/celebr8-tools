@@ -1,0 +1,72 @@
+id: masscan
+version: 1
+name: Masscan
+description: High-speed asynchronous port scanner capable of scanning the internet
+binary: masscan
+category: network
+risk_level: high
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 600
+tags: [network, ports, scanning, high-speed]
+
+verify:
+  argv: ["masscan", "--version"]
+
+ai_context:
+  summary: >
+    Use Masscan for extremely fast port scanning of large IP ranges. Can scan
+    millions of IPs per second using asynchronous TCP SYN packets. Generates
+    significant network traffic — always confirm scope and rate limits.
+  when_to_use:
+    - rapid port discovery across large CIDR ranges in a scoped engagement
+    - initial port sweep before targeted nmap service scans
+    - when scanning speed is prioritized over accuracy/service detail
+  expected_output: text
+  follow_up_hints:
+    - use a conservative --rate (e.g. 1000) to avoid network disruption
+    - pipe discovered open ports into nmap for service detection
+    - use --output-format list for easy post-processing
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: target
+    type: target
+    required: true
+    positional: true
+    description: Target IP, CIDR range, or range file
+
+  - name: ports
+    type: string
+    required: true
+    flag: "-p"
+    description: Port range to scan (e.g. 0-65535 or 80,443)
+
+  - name: rate
+    type: string
+    required: false
+    flag: "--rate"
+    description: Packets per second (keep low to avoid disruption)
+
+  - name: output_file
+    type: string
+    required: false
+    flag: "-oL"
+    description: Output file in list format
+
+  - name: banners
+    type: bool
+    required: false
+    flag: "--banners"
+    description: Enable banner grabbing
+
+artifacts:
+  - kind: raw_stdout
+    label: scan-results

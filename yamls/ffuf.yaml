@@ -1,0 +1,98 @@
+id: ffuf
+version: 1
+name: ffuf
+description: Fast web fuzzer for directories, files, parameters, and vhosts
+binary: ffuf
+category: web
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [web, fuzzing, active, brute-force]
+
+verify:
+  argv: ["ffuf", "-V"]
+
+ai_context:
+  summary: >
+    Use ffuf to fuzz web endpoints for hidden directories, files, parameters,
+    or virtual hosts. Uses a wordlist and a FUZZ placeholder in the URL,
+    header, or POST data. Fast and highly configurable.
+  when_to_use:
+    - discovering hidden paths on a scoped web application
+    - parameter fuzzing on forms or API endpoints
+    - virtual host enumeration on a discovered IP
+  expected_output: text
+  follow_up_hints:
+    - filter false positives with -fc (filter by status code) or -fs (filter by size)
+    - use SecLists wordlists for broad coverage
+    - store interesting findings as evidence before manual follow-up
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: url
+    type: target
+    required: true
+    flag: "-u"
+    description: Target URL with FUZZ placeholder
+
+  - name: wordlist
+    type: string
+    required: true
+    flag: "-w"
+    description: Wordlist file path (use path:FUZZ for named placeholder)
+
+  - name: method
+    type: enum
+    required: false
+    flag: "-X"
+    values: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+    description: HTTP method
+
+  - name: filter_status
+    type: string
+    required: false
+    flag: "-fc"
+    description: Filter responses by status code (e.g. 404,403)
+
+  - name: filter_size
+    type: string
+    required: false
+    flag: "-fs"
+    description: Filter responses by response size
+
+  - name: threads
+    type: string
+    required: false
+    flag: "-t"
+    description: Number of concurrent threads
+
+  - name: rate
+    type: string
+    required: false
+    flag: "-rate"
+    description: Maximum requests per second
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for results
+
+  - name: output_format
+    type: enum
+    required: false
+    flag: "-of"
+    values: ["json", "ejson", "html", "md", "csv", "ecsv"]
+    description: Output format
+
+artifacts:
+  - kind: raw_stdout
+    label: ffuf-results

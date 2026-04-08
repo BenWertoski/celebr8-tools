@@ -1,0 +1,85 @@
+id: dnsx
+version: 1
+name: dnsx
+description: Fast DNS resolver and brute-forcer with wildcard filtering (projectdiscovery)
+binary: dnsx
+category: recon
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [recon, dns, active, projectdiscovery]
+
+verify:
+  argv: ["dnsx", "-version"]
+
+ai_context:
+  summary: >
+    Use dnsx to resolve a list of subdomains or perform DNS brute-forcing
+    against a target domain. Handles wildcard filtering automatically and
+    supports A, AAAA, CNAME, MX, TXT, and NS record types.
+  when_to_use:
+    - resolving subdomain lists produced by subfinder, amass, or assetfinder
+    - brute-forcing subdomains with a wordlist
+    - extracting specific DNS record types for a target
+  expected_output: text
+  follow_up_hints:
+    - pipe resolved hosts to naabu or nmap for port scanning
+    - use -resp flag to include resolved IP addresses in output
+    - store IP-to-hostname mappings as evidence before proceeding
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: list
+    type: string
+    required: false
+    flag: "-l"
+    description: File containing list of domains to resolve
+
+  - name: domain
+    type: target
+    required: false
+    flag: "-d"
+    description: Target domain for brute-force mode
+
+  - name: wordlist
+    type: string
+    required: false
+    flag: "-w"
+    description: Wordlist file for subdomain brute-forcing
+
+  - name: record_type
+    type: enum
+    required: false
+    flag: "-t"
+    values: ["A", "AAAA", "CNAME", "MX", "TXT", "NS", "PTR"]
+    description: DNS record type to query
+
+  - name: resolvers
+    type: string
+    required: false
+    flag: "-r"
+    description: File with custom DNS resolvers
+
+  - name: threads
+    type: string
+    required: false
+    flag: "-t"
+    description: Number of concurrent threads
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print resolved results
+
+artifacts:
+  - kind: raw_stdout
+    label: resolved-hosts

@@ -1,0 +1,90 @@
+id: nuclei
+version: 1
+name: Nuclei
+description: Template-based vulnerability scanner (projectdiscovery)
+binary: nuclei
+category: web
+risk_level: high
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 1800
+tags: [web, vuln, active, templates, projectdiscovery]
+
+verify:
+  argv: ["nuclei", "-version"]
+
+ai_context:
+  summary: >
+    Use Nuclei to run community or custom YAML templates against scoped targets.
+    Templates range from passive information gathering to active exploitation
+    checks — always confirm the template severity set before running.
+  when_to_use:
+    - automated vulnerability detection after host and port discovery
+    - running specific CVE checks against discovered services
+    - technology fingerprinting and misconfiguration detection
+  expected_output: text
+  follow_up_hints:
+    - use -severity low,medium,high rather than running all templates in auto mode
+    - pipe httpx output as target list to nuclei for web-focused scanning
+    - store findings as evidence artifacts with template IDs for reporting
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: target
+    type: target
+    required: false
+    flag: "-u"
+    description: Single URL or host to scan
+
+  - name: list
+    type: string
+    required: false
+    flag: "-l"
+    description: File containing list of targets
+
+  - name: templates
+    type: string
+    required: false
+    flag: "-t"
+    description: Template or template directory to use
+
+  - name: severity
+    type: string
+    required: false
+    flag: "-severity"
+    description: Filter by severity (info,low,medium,high,critical)
+
+  - name: tags
+    type: string
+    required: false
+    flag: "-tags"
+    description: Filter templates by tag (e.g. cve,sqli,xss)
+
+  - name: rate_limit
+    type: string
+    required: false
+    flag: "-rl"
+    description: Maximum requests per second
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print findings in output
+
+  - name: json
+    type: bool
+    required: false
+    flag: "-jsonl"
+    description: Output findings as JSONL
+
+artifacts:
+  - kind: raw_stdout
+    label: nuclei-findings

@@ -1,0 +1,67 @@
+id: s3scanner
+version: 1
+name: S3Scanner
+description: Public S3 bucket enumerator and content lister
+binary: s3scanner
+category: cloud
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [cloud, aws, s3, recon, passive]
+
+verify:
+  argv: ["s3scanner", "version"]
+
+ai_context:
+  summary: >
+    Use S3Scanner to discover and enumerate publicly accessible S3 buckets
+    for a target organization. Checks bucket existence, public access status,
+    and optionally lists contents. No credentials required for public bucket checks.
+  when_to_use:
+    - cloud recon to discover exposed S3 buckets belonging to a target
+    - verifying whether discovered bucket names are publicly accessible
+    - listing contents of confirmed public buckets for evidence collection
+  expected_output: text
+  follow_up_hints:
+    - use a wordlist derived from company name and common naming patterns
+    - cross-reference found buckets with trufflehog for credential exposure
+    - document all public bucket findings with content listings as evidence
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: bucket
+    type: string
+    required: false
+    flag: "--bucket"
+    description: Single bucket name to check
+
+  - name: bucket_file
+    type: string
+    required: false
+    flag: "--bucket-file"
+    description: File containing list of bucket names to check
+
+  - name: dump
+    type: bool
+    required: false
+    flag: "--dump"
+    description: Dump contents of found public buckets
+
+  - name: provider
+    type: enum
+    required: false
+    flag: "--provider"
+    values: ["aws", "gcp", "digitalocean", "dreamhost", "linode"]
+    description: Cloud provider to check
+
+artifacts:
+  - kind: raw_stdout
+    label: bucket-results

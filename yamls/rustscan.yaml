@@ -1,0 +1,74 @@
+id: rustscan
+version: 1
+name: RustScan
+description: Fast Rust-based port scanner with automatic Nmap integration
+binary: rustscan
+category: network
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [network, ports, scanning, rust]
+
+verify:
+  argv: ["rustscan", "--version"]
+
+ai_context:
+  summary: >
+    Use RustScan to quickly identify open ports, then automatically hand off
+    to Nmap for service detection. Significantly faster than Nmap alone for
+    initial port discovery on a single host.
+  when_to_use:
+    - fast port discovery on a single scoped host
+    - when naabu is unavailable and speed is prioritized
+    - integrating with Nmap for combined port + service scanning
+  expected_output: text
+  follow_up_hints:
+    - use -- -sV to pass service detection flags through to Nmap
+    - pipe results to nuclei for service-specific vulnerability scanning
+    - use -t (timeout) to tune for network latency
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: addresses
+    type: target
+    required: true
+    flag: "-a"
+    description: Target address(es) to scan
+
+  - name: ports
+    type: string
+    required: false
+    flag: "-p"
+    description: Specific ports to scan (default: all)
+
+  - name: batch_size
+    type: string
+    required: false
+    flag: "-b"
+    description: Number of sockets to open in parallel
+
+  - name: timeout
+    type: string
+    required: false
+    flag: "-t"
+    description: Timeout per socket in milliseconds
+
+  - name: nmap_flags
+    type: string
+    required: false
+    flag: "--"
+    description: Flags to pass through to Nmap (e.g. -sV -sC)
+
+artifacts:
+  - kind: raw_stdout
+    label: scan-results
+  - kind: normalized_ports
+    label: open-ports

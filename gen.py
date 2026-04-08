@@ -5,20 +5,28 @@ Registry generator for BenWertoski/celebr8-tools.
 Produces:
   denylist.json
   index.json
-  index.json.sig   (64 raw bytes, Ed25519 signature over canonical JSON)
-  packages/subfinder/<version>.tar.gz
-  packages/httpx/<version>.tar.gz
+  index.json.sig       (64 raw bytes, Ed25519 signature over canonical JSON)
+  packages/<id>/<version>.tar.gz   (one per tool)
+
+Tool YAML definitions live in yamls/<id>.yaml (committed to this repo).
+
+Install methods:
+  github_release   — downloads platform archives, verifies checksums, stores digests
+  go_install       — records a 'go install' path; no binary download
+  pip              — records a pip package; no binary download
+  system_package   — records brew/apt install instructions; no binary download
+
+For non-binary-download methods, gen.py still resolves the latest GitHub release
+tag (when a github field is present) for accurate version tracking, and still builds
+a signed package tarball that contains manifest.json + the tool YAML.
 
 Key loading order (first wins):
-  1. CELEBR8_REGISTRY_SIGNING_KEY env var  — PEM content of the private key
-  2. .signing_key.pem in the repo root     — git-ignored local file
+  1. CELEBR8_REGISTRY_SIGNING_KEY env var — PEM content of the private key
+  2. .signing_key.pem in the repo root    — git-ignored local file
 
-The signing key is NEVER committed to this repo. Missing key material is a
-hard error — run with --bootstrap to generate a fresh keypair on first setup.
-
-Tarballs are deterministic: gzip mtime=0, tar entry mtime=0, JSON keys sorted.
-Identical inputs produce bit-identical packages and therefore identical digests.
-Only index.json's generated_at and the signature change between runs.
+Run with --bootstrap to generate a fresh keypair on first setup.
+Use --tool <id> to regenerate a single tool.
+Use --dry-run to skip writing files.
 """
 
 import gzip
@@ -35,54 +43,630 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
-# ── Pinned tool versions ───────────────────────────────────────────────────────
-# Set a version string to pin to that exact release.
-# Set to None to resolve the latest release from GitHub (and update the pin).
-SUBFINDER_VERSION: str | None = "v2.13.0"
-HTTPX_VERSION: str | None = "v1.9.0"
 
-# ── Key management ─────────────────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────
 
-KEY_FILE = Path(__file__).parent / ".signing_key.pem"
+BASE_DIR = Path(__file__).parent
+YAML_DIR = BASE_DIR / "yamls"
+PACKAGES_DIR = BASE_DIR / "packages"
+MIN_CLI_VERSION = "0.1.0"
+PD_OS_MAP = {"darwin": "macOS", "linux": "linux", "windows": "windows"}
+LOWER_OS_MAP = {"darwin": "darwin", "linux": "linux", "windows": "windows"}
+PLATFORMS = ["linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64"]
+
+# ── Tool registry ─────────────────────────────────────────────────────────────
+# Each entry drives version resolution, package building, and index generation.
+#
+# Required fields (all methods):
+#   id, display_name, description, category, tags, homepage, binary_name,
+#   version_pin, install, platforms, post_install_check, dependencies
+#
+# install.method == "github_release" adds:
+#   github_repo, asset_pattern, asset_os_map, archive_ext
+#
+# install.method == "go_install" adds:
+#   go_package
+#   github (optional — used to resolve version tag)
+#
+# install.method == "pip" adds:
+#   pip_package
+#   github (optional — used to resolve version tag)
+#
+# install.method == "system_package" adds:
+#   brew (optional), apt (optional)
+#   github (optional — used to resolve version tag)
+
+TOOLS = [
+    # ── recon ──────────────────────────────────────────────────────────────────
+    {
+        "id": "subfinder",
+        "display_name": "Subfinder",
+        "description": "Fast passive subdomain enumeration tool",
+        "category": "recon",
+        "tags": ["recon", "subdomain", "passive"],
+        "homepage": "https://github.com/projectdiscovery/subfinder",
+        "binary_name": "subfinder",
+        "version_pin": "v2.13.0",
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/subfinder",
+            "asset_pattern": "subfinder_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["subfinder", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "httpx",
+        "display_name": "httpx",
+        "description": "Fast and multi-purpose HTTP toolkit for web reconnaissance",
+        "category": "web",
+        "tags": ["web", "recon", "http", "alive-check"],
+        "homepage": "https://github.com/projectdiscovery/httpx",
+        "binary_name": "httpx",
+        "version_pin": "v1.9.0",
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/httpx",
+            "asset_pattern": "httpx_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["httpx", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "amass",
+        "display_name": "Amass",
+        "description": "In-depth attack surface mapping and subdomain enumeration (OWASP)",
+        "category": "recon",
+        "tags": ["recon", "subdomain", "active", "owasp"],
+        "homepage": "https://github.com/owasp-amass/amass",
+        "binary_name": "amass",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "amass",
+            "apt": "amass",
+            "github": "owasp-amass/amass",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["amass", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "assetfinder",
+        "display_name": "Assetfinder",
+        "description": "Quick passive subdomain discovery from various public sources",
+        "category": "recon",
+        "tags": ["recon", "subdomain", "passive"],
+        "homepage": "https://github.com/tomnomnom/assetfinder",
+        "binary_name": "assetfinder",
+        "version_pin": None,
+        "install": {
+            "method": "go_install",
+            "go_package": "github.com/tomnomnom/assetfinder@latest",
+            "github": "tomnomnom/assetfinder",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["assetfinder", "--help"],
+        "dependencies": [],
+    },
+    {
+        "id": "dnsx",
+        "display_name": "dnsx",
+        "description": "Fast DNS resolver and brute-forcer with wildcard filtering (projectdiscovery)",
+        "category": "recon",
+        "tags": ["recon", "dns", "active", "projectdiscovery"],
+        "homepage": "https://github.com/projectdiscovery/dnsx",
+        "binary_name": "dnsx",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/dnsx",
+            "asset_pattern": "dnsx_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["dnsx", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "naabu",
+        "display_name": "Naabu",
+        "description": "Fast SYN/TCP port scanner (projectdiscovery)",
+        "category": "recon",
+        "tags": ["recon", "network", "ports", "projectdiscovery"],
+        "homepage": "https://github.com/projectdiscovery/naabu",
+        "binary_name": "naabu",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/naabu",
+            "asset_pattern": "naabu_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["naabu", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "massdns",
+        "display_name": "MassDNS",
+        "description": "High-performance bulk DNS resolver for large subdomain lists",
+        "category": "recon",
+        "tags": ["recon", "dns", "active", "bulk"],
+        "homepage": "https://github.com/blechschmidt/massdns",
+        "binary_name": "massdns",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "massdns",
+            "github": "blechschmidt/massdns",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["massdns", "--help"],
+        "dependencies": [],
+    },
+    {
+        "id": "chaos-client",
+        "display_name": "Chaos Client",
+        "description": "projectdiscovery Chaos DB feed — passive subdomain dataset access",
+        "category": "recon",
+        "tags": ["recon", "subdomain", "passive", "projectdiscovery"],
+        "homepage": "https://github.com/projectdiscovery/chaos-client",
+        "binary_name": "chaos",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/chaos-client",
+            "asset_pattern": "chaos-client_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["chaos", "-version"],
+        "dependencies": [],
+    },
+    # ── web ────────────────────────────────────────────────────────────────────
+    {
+        "id": "nuclei",
+        "display_name": "Nuclei",
+        "description": "Template-based vulnerability scanner (projectdiscovery)",
+        "category": "web",
+        "tags": ["web", "vuln", "active", "templates", "projectdiscovery"],
+        "homepage": "https://github.com/projectdiscovery/nuclei",
+        "binary_name": "nuclei",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/nuclei",
+            "asset_pattern": "nuclei_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["nuclei", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "ffuf",
+        "display_name": "ffuf",
+        "description": "Fast web fuzzer for directories, files, parameters, and vhosts",
+        "category": "web",
+        "tags": ["web", "fuzzing", "active", "brute-force"],
+        "homepage": "https://github.com/ffuf/ffuf",
+        "binary_name": "ffuf",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "ffuf/ffuf",
+            "asset_pattern": "ffuf_{version_no_v}_{os}_{arch}.tar.gz",
+            "asset_os_map": LOWER_OS_MAP,
+            "archive_ext": "tar.gz",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["ffuf", "-V"],
+        "dependencies": [],
+    },
+    {
+        "id": "feroxbuster",
+        "display_name": "Feroxbuster",
+        "description": "Fast recursive directory and file brute-forcer for web applications",
+        "category": "web",
+        "tags": ["web", "fuzzing", "active", "brute-force", "recursive"],
+        "homepage": "https://github.com/epi052/feroxbuster",
+        "binary_name": "feroxbuster",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "feroxbuster",
+            "cargo": "feroxbuster",
+            "github": "epi052/feroxbuster",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["feroxbuster", "--version"],
+        "dependencies": [],
+    },
+    {
+        "id": "katana",
+        "display_name": "Katana",
+        "description": "Fast web crawler with JavaScript parsing support (projectdiscovery)",
+        "category": "web",
+        "tags": ["web", "crawler", "active", "projectdiscovery"],
+        "homepage": "https://github.com/projectdiscovery/katana",
+        "binary_name": "katana",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/katana",
+            "asset_pattern": "katana_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["katana", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "dalfox",
+        "display_name": "Dalfox",
+        "description": "Fast parameter-based XSS scanner and utility",
+        "category": "web",
+        "tags": ["web", "xss", "active", "scanning"],
+        "homepage": "https://github.com/hahwul/dalfox",
+        "binary_name": "dalfox",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "hahwul/dalfox",
+            "asset_pattern": "dalfox_{version_no_v}_{os}_{arch}.tar.gz",
+            "asset_os_map": LOWER_OS_MAP,
+            "archive_ext": "tar.gz",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["dalfox", "version"],
+        "dependencies": [],
+    },
+    {
+        "id": "sqlmap",
+        "display_name": "sqlmap",
+        "description": "Automatic SQL injection detection and exploitation tool",
+        "category": "web",
+        "tags": ["web", "sqli", "active", "exploitation"],
+        "homepage": "https://github.com/sqlmapproject/sqlmap",
+        "binary_name": "sqlmap",
+        "version_pin": None,
+        "install": {
+            "method": "pip",
+            "pip_package": "sqlmap",
+            "github": "sqlmapproject/sqlmap",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["sqlmap", "--version"],
+        "dependencies": [],
+    },
+    {
+        "id": "gau",
+        "display_name": "gau",
+        "description": "Fetch all known URLs from Wayback Machine, Common Crawl, and other sources",
+        "category": "web",
+        "tags": ["web", "recon", "passive", "urls", "osint"],
+        "homepage": "https://github.com/lc/gau",
+        "binary_name": "gau",
+        "version_pin": None,
+        "install": {
+            "method": "go_install",
+            "go_package": "github.com/lc/gau/v2/cmd/gau@latest",
+            "github": "lc/gau",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["gau", "--version"],
+        "dependencies": [],
+    },
+    {
+        "id": "waybackurls",
+        "display_name": "Waybackurls",
+        "description": "Pull all URLs archived for a domain from the Wayback Machine",
+        "category": "web",
+        "tags": ["web", "recon", "passive", "urls", "wayback"],
+        "homepage": "https://github.com/tomnomnom/waybackurls",
+        "binary_name": "waybackurls",
+        "version_pin": None,
+        "install": {
+            "method": "go_install",
+            "go_package": "github.com/tomnomnom/waybackurls@latest",
+            "github": "tomnomnom/waybackurls",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["waybackurls", "-h"],
+        "dependencies": [],
+    },
+    # ── network ────────────────────────────────────────────────────────────────
+    {
+        "id": "nmap",
+        "display_name": "Nmap",
+        "description": "Classic network and port scanner with service detection",
+        "category": "network",
+        "tags": ["network", "ports", "services", "scanning"],
+        "homepage": "https://nmap.org",
+        "binary_name": "nmap",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "nmap",
+            "apt": "nmap",
+            "github": "nmap/nmap",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["nmap", "--version"],
+        "dependencies": [],
+    },
+    {
+        "id": "masscan",
+        "display_name": "Masscan",
+        "description": "High-speed asynchronous port scanner capable of scanning the internet",
+        "category": "network",
+        "tags": ["network", "ports", "scanning", "high-speed"],
+        "homepage": "https://github.com/robertdavidgraham/masscan",
+        "binary_name": "masscan",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "masscan",
+            "apt": "masscan",
+            "github": "robertdavidgraham/masscan",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["masscan", "--version"],
+        "dependencies": [],
+    },
+    {
+        "id": "rustscan",
+        "display_name": "RustScan",
+        "description": "Fast Rust-based port scanner with automatic Nmap integration",
+        "category": "network",
+        "tags": ["network", "ports", "scanning", "rust"],
+        "homepage": "https://github.com/RustScan/RustScan",
+        "binary_name": "rustscan",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "rustscan",
+            "cargo": "rustscan",
+            "github": "RustScan/RustScan",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["rustscan", "--version"],
+        "dependencies": [],
+    },
+    # ── cloud ──────────────────────────────────────────────────────────────────
+    {
+        "id": "cloudfox",
+        "display_name": "CloudFox",
+        "description": "Cloud attack surface mapper for AWS, Azure, and GCP environments",
+        "category": "cloud",
+        "tags": ["cloud", "aws", "azure", "gcp", "recon", "attack-surface"],
+        "homepage": "https://github.com/BishopFox/cloudfox",
+        "binary_name": "cloudfox",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "BishopFox/cloudfox",
+            "asset_pattern": "cloudfox-{os}-{arch}.tar.gz",
+            "asset_os_map": {"darwin": "macos", "linux": "linux"},
+            "archive_ext": "tar.gz",
+        },
+        "platforms": ["linux/amd64", "darwin/amd64", "darwin/arm64"],
+        "post_install_check": ["cloudfox", "version"],
+        "dependencies": [],
+    },
+    {
+        "id": "s3scanner",
+        "display_name": "S3Scanner",
+        "description": "Public S3 bucket enumerator and content lister",
+        "category": "cloud",
+        "tags": ["cloud", "aws", "s3", "recon", "passive"],
+        "homepage": "https://github.com/sa7mon/S3Scanner",
+        "binary_name": "s3scanner",
+        "version_pin": None,
+        "install": {
+            "method": "pip",
+            "pip_package": "s3scanner",
+            "github": "sa7mon/S3Scanner",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["s3scanner", "version"],
+        "dependencies": [],
+    },
+    {
+        "id": "trufflehog",
+        "display_name": "TruffleHog",
+        "description": "Secrets and credential scanner for git repos, S3, filesystems, and more",
+        "category": "cloud",
+        "tags": ["cloud", "secrets", "credentials", "git", "passive"],
+        "homepage": "https://github.com/trufflesecurity/trufflehog",
+        "binary_name": "trufflehog",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "trufflesecurity/trufflehog",
+            "asset_pattern": "trufflehog_{version_no_v}_{os}_{arch}.tar.gz",
+            "asset_os_map": LOWER_OS_MAP,
+            "archive_ext": "tar.gz",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["trufflehog", "--version"],
+        "dependencies": [],
+    },
+    # ── osint ──────────────────────────────────────────────────────────────────
+    {
+        "id": "theharvester",
+        "display_name": "theHarvester",
+        "description": "OSINT tool for gathering emails, subdomains, IPs, and URLs from public sources",
+        "category": "osint",
+        "tags": ["osint", "passive", "email", "subdomain", "recon"],
+        "homepage": "https://github.com/laramies/theHarvester",
+        "binary_name": "theHarvester",
+        "version_pin": None,
+        "install": {
+            "method": "pip",
+            "pip_package": "theHarvester",
+            "github": "laramies/theHarvester",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["theHarvester", "-h"],
+        "dependencies": [],
+    },
+    {
+        "id": "shodan",
+        "display_name": "Shodan CLI",
+        "description": "Shodan search engine CLI for passive host and service intelligence",
+        "category": "osint",
+        "tags": ["osint", "passive", "shodan", "network", "intelligence"],
+        "homepage": "https://cli.shodan.io",
+        "binary_name": "shodan",
+        "version_pin": None,
+        "install": {
+            "method": "pip",
+            "pip_package": "shodan",
+            "github": "Shodan/shodan-python",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["shodan", "version"],
+        "dependencies": [],
+    },
+    # ── wifi ───────────────────────────────────────────────────────────────────
+    {
+        "id": "aircrack-ng",
+        "display_name": "Aircrack-ng",
+        "description": "WEP and WPA/WPA2 wireless network security audit suite",
+        "category": "wifi",
+        "tags": ["wifi", "wireless", "wpa", "wep", "cracking", "audit"],
+        "homepage": "https://www.aircrack-ng.org",
+        "binary_name": "aircrack-ng",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "aircrack-ng",
+            "apt": "aircrack-ng",
+            "github": "aircrack-ng/aircrack-ng",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["aircrack-ng", "--help"],
+        "dependencies": [],
+    },
+    {
+        "id": "hashcat",
+        "display_name": "Hashcat",
+        "description": "GPU-accelerated password recovery and hash cracking tool",
+        "category": "wifi",
+        "tags": ["wifi", "cracking", "passwords", "gpu", "hashes"],
+        "homepage": "https://hashcat.net",
+        "binary_name": "hashcat",
+        "version_pin": None,
+        "install": {
+            "method": "system_package",
+            "brew": "hashcat",
+            "apt": "hashcat",
+            "github": "hashcat/hashcat",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["hashcat", "--version"],
+        "dependencies": [],
+    },
+    # ── util ───────────────────────────────────────────────────────────────────
+    {
+        "id": "anew",
+        "display_name": "anew",
+        "description": "Append-only deduplicated output tool for pipeline use",
+        "category": "util",
+        "tags": ["util", "pipeline", "dedup"],
+        "homepage": "https://github.com/tomnomnom/anew",
+        "binary_name": "anew",
+        "version_pin": None,
+        "install": {
+            "method": "go_install",
+            "go_package": "github.com/tomnomnom/anew@latest",
+            "github": "tomnomnom/anew",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["anew", "-h"],
+        "dependencies": [],
+    },
+    {
+        "id": "interactsh-client",
+        "display_name": "Interactsh Client",
+        "description": "Out-of-band interaction testing client (projectdiscovery)",
+        "category": "util",
+        "tags": ["util", "oob", "oast", "projectdiscovery", "blind"],
+        "homepage": "https://github.com/projectdiscovery/interactsh",
+        "binary_name": "interactsh-client",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/interactsh",
+            "asset_pattern": "interactsh-client_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["interactsh-client", "-version"],
+        "dependencies": [],
+    },
+    {
+        "id": "notify",
+        "display_name": "Notify",
+        "description": "Pipe tool output to Slack, Discord, Telegram, and other channels (projectdiscovery)",
+        "category": "util",
+        "tags": ["util", "notifications", "pipeline", "projectdiscovery", "slack", "discord"],
+        "homepage": "https://github.com/projectdiscovery/notify",
+        "binary_name": "notify",
+        "version_pin": None,
+        "install": {
+            "method": "github_release",
+            "github_repo": "projectdiscovery/notify",
+            "asset_pattern": "notify_{version_no_v}_{os}_{arch}.zip",
+            "asset_os_map": PD_OS_MAP,
+            "archive_ext": "zip",
+        },
+        "platforms": PLATFORMS,
+        "post_install_check": ["notify", "-version"],
+        "dependencies": [],
+    },
+]
+
+
+# ── Key management ────────────────────────────────────────────────────────────
+
+KEY_FILE = BASE_DIR / ".signing_key.pem"
 _KEY_ENV = "CELEBR8_REGISTRY_SIGNING_KEY"
 
 
 def load_key(bootstrap: bool = False) -> Ed25519PrivateKey:
-    """Load the signing key from env var or local file.
-
-    Args:
-        bootstrap: If True and no key is found, generate a new keypair, save
-                   it to .signing_key.pem, and print the Rust public key literal.
-                   If False (default) and no key is found, exit with an error.
-
-    Raises:
-        SystemExit: When no key material is available and bootstrap=False.
-    """
-    # 1. Env var (CI / GitHub Actions secret)
     pem_env = os.environ.get(_KEY_ENV)
     if pem_env:
         key = serialization.load_pem_private_key(pem_env.encode(), password=None)
         print(f"[keygen] Loaded key from {_KEY_ENV} env var", file=sys.stderr)
         return key  # type: ignore[return-value]
-
-    # 2. Local git-ignored file
     if KEY_FILE.exists():
         pem = KEY_FILE.read_bytes()
         key = serialization.load_pem_private_key(pem, password=None)
         print(f"[keygen] Loaded key from {KEY_FILE}", file=sys.stderr)
         return key  # type: ignore[return-value]
-
-    # 3. No key found
     if not bootstrap:
         print(
             f"[error] No signing key found.\n"
             f"  Set {_KEY_ENV} env var (PEM content) or place key at {KEY_FILE}.\n"
-            f"  To generate a fresh keypair on first setup: python3 gen.py --bootstrap",
+            f"  To generate a fresh keypair: python3 gen.py --bootstrap",
             file=sys.stderr,
         )
         sys.exit(1)
-
-    # Bootstrap: generate and save
     key = Ed25519PrivateKey.generate()
     pem = key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -101,7 +685,6 @@ def load_key(bootstrap: bool = False) -> Ed25519PrivateKey:
 
 
 def pubkey_rust_array(key: Ed25519PrivateKey) -> str:
-    """Return the Rust array literal for the 32-byte public key."""
     pub = key.public_key()
     raw = pub.public_bytes(
         encoding=serialization.Encoding.Raw,
@@ -109,7 +692,6 @@ def pubkey_rust_array(key: Ed25519PrivateKey) -> str:
     )
     assert len(raw) == 32
     hex_pairs = [f"0x{b:02x}" for b in raw]
-    # Format in two rows of 16
     row1 = ", ".join(hex_pairs[:16])
     row2 = ", ".join(hex_pairs[16:])
     return (
@@ -120,10 +702,9 @@ def pubkey_rust_array(key: Ed25519PrivateKey) -> str:
     )
 
 
-# ── Canonical JSON (matches Rust impl) ────────────────────────────────────────
+# ── Canonical JSON ────────────────────────────────────────────────────────────
 
 def canonical_json_bytes(value) -> bytes:
-    """Produce canonical JSON bytes with sorted object keys, no whitespace."""
     if value is None:
         return b"null"
     elif isinstance(value, bool):
@@ -133,7 +714,7 @@ def canonical_json_bytes(value) -> bytes:
     elif isinstance(value, float):
         return str(value).encode()
     elif isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode()
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode()
     elif isinstance(value, list):
         parts = [canonical_json_bytes(v) for v in value]
         return b"[" + b",".join(parts) + b"]"
@@ -141,17 +722,16 @@ def canonical_json_bytes(value) -> bytes:
         sorted_items = sorted(value.items(), key=lambda x: x[0])
         parts = []
         for k, v in sorted_items:
-            key_bytes = json.dumps(k, ensure_ascii=False, separators=(',', ':')).encode()
+            key_bytes = json.dumps(k, ensure_ascii=False, separators=(",", ":")).encode()
             parts.append(key_bytes + b":" + canonical_json_bytes(v))
         return b"{" + b",".join(parts) + b"}"
     else:
         raise TypeError(f"Unsupported type: {type(value)}")
 
 
-# ── Signing ────────────────────────────────────────────────────────────────────
+# ── Signing ───────────────────────────────────────────────────────────────────
 
 def sign_index(key: Ed25519PrivateKey, index_json_bytes: bytes) -> bytes:
-    """Sign canonical JSON bytes of index.json. Returns 64 raw signature bytes."""
     value = json.loads(index_json_bytes)
     canonical = canonical_json_bytes(value)
     sig = key.sign(canonical)
@@ -159,13 +739,13 @@ def sign_index(key: Ed25519PrivateKey, index_json_bytes: bytes) -> bytes:
     return sig
 
 
-# ── SHA-256 helpers ────────────────────────────────────────────────────────────
+# ── SHA-256 helpers ───────────────────────────────────────────────────────────
 
 def sha256_of(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
-# ── GitHub release info ────────────────────────────────────────────────────────
+# ── GitHub API helpers ────────────────────────────────────────────────────────
 
 def fetch_json(url: str) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": "celebr8-registry-gen/1.0"})
@@ -180,25 +760,35 @@ def fetch_bytes(url: str) -> bytes:
         return resp.read()
 
 
-def get_release_info(repo: str, tag: str | None = None) -> dict:
-    if tag:
-        url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
-    else:
-        url = f"https://api.github.com/repos/{repo}/releases/latest"
-    return fetch_json(url)
+def get_release_info(repo: str, tag: str | None = None) -> dict | None:
+    """Return release info dict, or None if no releases exist."""
+    url = (
+        f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+        if tag
+        else f"https://api.github.com/repos/{repo}/releases/latest"
+    )
+    try:
+        return fetch_json(url)
+    except Exception as exc:
+        print(f"  [warn] could not resolve release for {repo}: {exc}", file=sys.stderr)
+        return None
 
 
 def get_checksums(release: dict) -> dict[str, str]:
     """Parse checksums.txt from a release. Returns {filename: sha256_hex}."""
     assets = release.get("assets", [])
     csum_asset = next(
-        (a for a in assets if a["name"].endswith("_checksums.txt") or a["name"] == "checksums.txt"),
+        (
+            a
+            for a in assets
+            if a["name"].endswith("_checksums.txt") or a["name"] == "checksums.txt"
+        ),
         None,
     )
     if not csum_asset:
         return {}
     text = fetch_bytes(csum_asset["browser_download_url"]).decode()
-    result = {}
+    result: dict[str, str] = {}
     for line in text.splitlines():
         parts = line.split()
         if len(parts) == 2:
@@ -207,22 +797,54 @@ def get_checksums(release: dict) -> dict[str, str]:
     return result
 
 
-# ── Package tarball builder ────────────────────────────────────────────────────
+# ── Asset filename builder ────────────────────────────────────────────────────
+
+def make_asset_filename(pattern: str, version_no_v: str, os_: str, arch: str, os_map: dict) -> str:
+    """Expand an asset_pattern template to a concrete filename.
+
+    Supported placeholders: {version_no_v}, {os}, {arch}
+    The {os} placeholder is replaced using os_map (e.g. "darwin" → "macOS").
+    """
+    mapped_os = os_map.get(os_, os_)
+    return pattern.format(version_no_v=version_no_v, os=mapped_os, arch=arch)
+
+
+def build_archive_digests(
+    tool: dict,
+    release: dict,
+    version: str,
+    checksums: dict[str, str],
+) -> dict[str, str]:
+    """Return {platform: "sha256:…"} for all supported platforms.
+
+    For each platform, looks up the expected filename in the checksums map.
+    Warns (and skips) when no checksum is found for a platform.
+    """
+    install = tool["install"]
+    pattern = install["asset_pattern"]
+    os_map = install["asset_os_map"]
+    version_no_v = version.lstrip("v")
+    digests: dict[str, str] = {}
+
+    for platform in tool["platforms"]:
+        os_, arch = platform.split("/")
+        filename = make_asset_filename(pattern, version_no_v, os_, arch, os_map)
+        hex_digest = checksums.get(filename)
+        if hex_digest:
+            digests[platform] = f"sha256:{hex_digest}"
+        else:
+            print(f"  [warn] no checksum for {filename}", file=sys.stderr)
+
+    return digests
+
+
+# ── Tarball builder ───────────────────────────────────────────────────────────
 
 def build_tarball(manifest: dict, yaml_content: str, tool_id: str) -> bytes:
-    """Build a deterministic tar.gz with exactly manifest.json and <tool_id>.yaml.
-
-    Determinism guarantees:
-    - gzip header mtime=0 (via GzipFile(mtime=0))
-    - tar entry mtime=0 on every TarInfo
-    - manifest.json serialized with sorted keys and no trailing whitespace variation
-
-    Identical inputs produce bit-identical output, so digests are stable across runs.
-    """
+    """Build a deterministic tar.gz containing manifest.json + <tool_id>.yaml."""
     buf = io.BytesIO()
     with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz:
-        with tarfile.open(fileobj=gz, mode="w|") as tf:
-            # manifest.json — sort_keys ensures deterministic field order
+        with tarfile.open(fileobj=gz, mode="w|") as tf:  # type: ignore[call-overload]
             manifest_bytes = json.dumps(manifest, indent=2, sort_keys=True).encode()
             info = tarfile.TarInfo(name="manifest.json")
             info.size = len(manifest_bytes)
@@ -230,7 +852,6 @@ def build_tarball(manifest: dict, yaml_content: str, tool_id: str) -> bytes:
             info.type = tarfile.REGTYPE
             tf.addfile(info, io.BytesIO(manifest_bytes))
 
-            # <tool_id>.yaml
             yaml_bytes = yaml_content.encode()
             info = tarfile.TarInfo(name=f"{tool_id}.yaml")
             info.size = len(yaml_bytes)
@@ -241,166 +862,223 @@ def build_tarball(manifest: dict, yaml_content: str, tool_id: str) -> bytes:
     return buf.getvalue()
 
 
-# ── Tool specs ────────────────────────────────────────────────────────────────
+# ── Install section builders ──────────────────────────────────────────────────
 
-SUBFINDER_YAML = """\
-id: subfinder
-version: 1
-name: Subfinder
-description: Fast passive subdomain enumeration tool
-binary: subfinder
-category: recon
-risk_level: low
-requires_scope: true
-requires_confirmation: false
-max_runtime_secs: 300
-tags: [recon, subdomain, passive]
+def build_install_github_release(tool: dict, version: str, archive_digests: dict) -> dict:
+    inst = tool["install"]
+    section: dict = {
+        "method": "github_release",
+        "github_repo": inst["github_repo"],
+        "binary_name": tool["binary_name"],
+        "asset_pattern": inst["asset_pattern"],
+        "archive_digests": archive_digests,
+    }
+    # Only include asset_os_map when it differs from the default PD mapping.
+    if inst["asset_os_map"] != PD_OS_MAP:
+        section["asset_os_map"] = inst["asset_os_map"]
+    return section
 
-verify:
-  argv: ["subfinder", "-version"]
 
-ai_context:
-  summary: >
-    Use Subfinder to enumerate subdomains passively for a scoped domain.
-    It queries multiple OSINT sources without sending requests to the target.
-  when_to_use:
-    - initial recon phase before active scanning
-    - building a subdomain inventory for a target domain
-    - discovering asset scope before web/API testing
-  expected_output: text
-  follow_up_hints:
-    - pipe discovered subdomains to httpx for live host detection
-    - store subdomain list as evidence artifact before proceeding
+def build_install_go(tool: dict) -> dict:
+    return {
+        "method": "go_install",
+        "go_package": tool["install"]["go_package"],
+        "binary_name": tool["binary_name"],
+    }
 
-policy:
-  allow_in_auto: true
-  approval_mode: inherit
-  capture_stdout: true
-  capture_stderr: true
-  retain_artifacts: true
-  redact_patterns: []
 
-parameters:
-  - name: domain
-    type: target
-    required: true
-    positional: false
-    flag: "-d"
-    description: Target domain to enumerate subdomains for
+def build_install_pip(tool: dict) -> dict:
+    return {
+        "method": "pip",
+        "pip_package": tool["install"]["pip_package"],
+        "binary_name": tool["binary_name"],
+    }
 
-  - name: output
-    type: string
-    required: false
-    flag: "-o"
-    description: Output file path for discovered subdomains
 
-  - name: silent
-    type: bool
-    required: false
-    flag: "-silent"
-    description: Only print subdomains in output
+def build_install_system(tool: dict) -> dict:
+    inst = tool["install"]
+    section: dict = {"method": "system_package", "binary_name": tool["binary_name"]}
+    if "brew" in inst:
+        section["brew"] = inst["brew"]
+    if "apt" in inst:
+        section["apt"] = inst["apt"]
+    if "cargo" in inst:
+        section["cargo"] = inst["cargo"]
+    return section
 
-artifacts:
-  - kind: raw_stdout
-    label: subdomain-list
-"""
 
-HTTPX_YAML = """\
-id: httpx
-version: 1
-name: httpx
-description: Fast and multi-purpose HTTP toolkit for web reconnaissance
-binary: httpx
-category: web
-risk_level: low
-requires_scope: true
-requires_confirmation: false
-max_runtime_secs: 300
-tags: [web, recon, http, alive-check]
+# ── Per-tool processing ───────────────────────────────────────────────────────
 
-verify:
-  argv: ["httpx", "-version"]
+def process_tool(tool: dict, now: str, dry_run: bool) -> dict | None:
+    """Build the package for one tool and return its index entry, or None on failure."""
+    tool_id = tool["id"]
+    method = tool["install"]["method"]
+    print(f"\n[tool] {tool_id} ({method})", file=sys.stderr)
 
-ai_context:
-  summary: >
-    Use httpx to probe a list of hosts or URLs for live HTTP/HTTPS services,
-    status codes, titles, and technology fingerprints.
-  when_to_use:
-    - after subdomain enumeration to identify live web hosts
-    - checking which discovered hosts are serving HTTP/HTTPS
-    - gathering basic web metadata (status, title, tech) at scale
-  expected_output: text
-  follow_up_hints:
-    - combine with subfinder output for full recon pipeline
-    - filter 200/302 responses for further web testing
+    # ── Load YAML ──
+    yaml_path = YAML_DIR / f"{tool_id}.yaml"
+    if not yaml_path.exists():
+        # Try the display_name variation (e.g. theHarvester.yaml)
+        alt = YAML_DIR / f"{tool['display_name']}.yaml"
+        if alt.exists():
+            yaml_path = alt
+        else:
+            print(f"  [error] YAML not found at {yaml_path} or {alt}", file=sys.stderr)
+            return None
+    yaml_content = yaml_path.read_text()
 
-policy:
-  allow_in_auto: true
-  approval_mode: inherit
-  capture_stdout: true
-  capture_stderr: true
-  retain_artifacts: true
-  redact_patterns: []
+    # ── Resolve version ──
+    version_pin = tool["version_pin"]
+    version = version_pin
 
-parameters:
-  - name: list
-    type: string
-    required: false
-    flag: "-l"
-    description: Input file containing list of hosts or URLs to probe
+    if method == "github_release":
+        github_repo = tool["install"]["github_repo"]
+        print(
+            f"  [github] resolving {'pinned ' + version_pin if version_pin else 'latest'}"
+            f" for {github_repo}...",
+            file=sys.stderr,
+        )
+        release = get_release_info(github_repo, version_pin)
+        if release is None:
+            print(f"  [error] could not resolve release for {tool_id}, skipping", file=sys.stderr)
+            return None
+        version = release["tag_name"]
+        print(f"  [github] resolved {version}", file=sys.stderr)
 
-  - name: url
-    type: target
-    required: false
-    positional: false
-    flag: "-u"
-    description: Single target URL or host to probe
+        print(f"  [checksums] fetching checksums for {tool_id}...", file=sys.stderr)
+        checksums = get_checksums(release)
+        if not checksums:
+            print(f"  [warn] no checksums.txt found for {tool_id}", file=sys.stderr)
 
-  - name: status_code
-    type: bool
-    required: false
-    flag: "-sc"
-    description: Display response status code
+        archive_digests = build_archive_digests(tool, release, version, checksums)
+        install_section = build_install_github_release(tool, version, archive_digests)
 
-  - name: title
-    type: bool
-    required: false
-    flag: "-title"
-    description: Display page title
+    else:
+        # For non-binary tools, try to resolve version from GitHub for tracking.
+        github_ref = tool["install"].get("github")
+        if github_ref and not version_pin:
+            release = get_release_info(github_ref)
+            if release:
+                version = release["tag_name"]
+                print(f"  [github] resolved version {version} from {github_ref}", file=sys.stderr)
+        if version is None:
+            version = "v0.0.0+external"
+            print(f"  [warn] no version resolved for {tool_id}, using {version}", file=sys.stderr)
 
-  - name: tech_detect
-    type: bool
-    required: false
-    flag: "-tech-detect"
-    description: Enable technology detection
+        if method == "go_install":
+            install_section = build_install_go(tool)
+        elif method == "pip":
+            install_section = build_install_pip(tool)
+        elif method == "system_package":
+            install_section = build_install_system(tool)
+        else:
+            print(f"  [error] unknown install method '{method}' for {tool_id}", file=sys.stderr)
+            return None
 
-  - name: silent
-    type: bool
-    required: false
-    flag: "-silent"
-    description: Silent mode, only print results
+    # ── Build manifest ──
+    manifest: dict = {
+        "registry_schema_version": 1,
+        "package_schema_version": 1,
+        "tool_id": tool_id,
+        "version": version,
+        "min_cli_version": MIN_CLI_VERSION,
+        "max_cli_version": None,
+        "install": install_section,
+        "dependencies": tool["dependencies"],
+        "post_install_check": {
+            "argv": tool["post_install_check"],
+            "expect_exit_code": 0,
+        },
+        "platforms": tool["platforms"],
+    }
 
-artifacts:
-  - kind: raw_stdout
-    label: http-probe-results
-"""
+    # ── Build tarball ──
+    tarball = build_tarball(manifest, yaml_content, tool_id)
+    pkg_path = PACKAGES_DIR / tool_id / f"{version}.tar.gz"
+
+    if not dry_run:
+        pkg_path.parent.mkdir(parents=True, exist_ok=True)
+        pkg_path.write_bytes(tarball)
+    print(
+        f"  [tarball] {'(dry-run) ' if dry_run else ''}wrote {pkg_path} ({len(tarball)} bytes)",
+        file=sys.stderr,
+    )
+
+    digest = sha256_of(tarball)
+
+    # ── Build index entry ──
+    # Determine github owner/repo for the index entry.
+    if method == "github_release":
+        gh_owner, gh_repo = tool["install"]["github_repo"].split("/", 1)
+    elif "github" in tool["install"]:
+        gh_ref = tool["install"]["github"]
+        gh_owner, gh_repo = gh_ref.split("/", 1)
+    else:
+        gh_owner, gh_repo = "", tool_id
+
+    entry = {
+        "id": tool_id,
+        "display_name": tool["display_name"],
+        "description": tool["description"],
+        "category": tool["category"],
+        "tags": tool["tags"],
+        "homepage": tool["homepage"],
+        "latest_version": version,
+        "versions": [
+            {
+                "version": version,
+                "package_schema_version": 1,
+                "package_url": f"packages/{tool_id}/{version}.tar.gz",
+                "digest": digest,
+                "size": len(tarball),
+                "status": "active",
+                "min_cli_version": MIN_CLI_VERSION,
+                "max_cli_version": None,
+                "published_at": now,
+            }
+        ],
+        "platforms": tool["platforms"],
+        "dependencies": tool["dependencies"],
+        "github": {"owner": gh_owner, "repo": gh_repo},
+    }
+
+    return entry
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Regenerate the celebr8-tools registry.")
     parser.add_argument(
         "--bootstrap",
         action="store_true",
-        help="Generate a fresh Ed25519 keypair on first setup (hard error otherwise).",
+        help="Generate a fresh Ed25519 keypair on first setup.",
+    )
+    parser.add_argument(
+        "--tool",
+        metavar="ID",
+        action="append",
+        dest="tools",
+        help="Only process the named tool(s). Repeatable.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Skip writing files; print what would be done.",
     )
     args = parser.parse_args()
 
-    base_dir = Path(__file__).parent
-    cli_version = "0.1.0"
+    # Filter tool list when --tool is specified.
+    tools_to_run = TOOLS
+    if args.tools:
+        ids = set(args.tools)
+        tools_to_run = [t for t in TOOLS if t["id"] in ids]
+        missing = ids - {t["id"] for t in tools_to_run}
+        if missing:
+            print(f"[error] Unknown tool ID(s): {', '.join(sorted(missing))}", file=sys.stderr)
+            sys.exit(1)
 
     # 1. Key
     key = load_key(bootstrap=args.bootstrap)
@@ -408,222 +1086,62 @@ def main():
     print(pubkey_rust_array(key))
     print()
 
-    # 2. Fetch release info (use pinned versions when set)
-    print(
-        f"[github] Resolving subfinder "
-        f"{'pinned ' + SUBFINDER_VERSION if SUBFINDER_VERSION else 'latest'}...",
-        file=sys.stderr,
-    )
-    sf_release = get_release_info("projectdiscovery/subfinder", SUBFINDER_VERSION)
-    sf_version = sf_release["tag_name"]
-    print(f"[github] subfinder: {sf_version}", file=sys.stderr)
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-    print(
-        f"[github] Resolving httpx "
-        f"{'pinned ' + HTTPX_VERSION if HTTPX_VERSION else 'latest'}...",
-        file=sys.stderr,
-    )
-    hx_release = get_release_info("projectdiscovery/httpx", HTTPX_VERSION)
-    hx_version = hx_release["tag_name"]
-    print(f"[github] httpx: {hx_version}", file=sys.stderr)
+    # 2. Process each tool
+    index_entries: list[dict] = []
+    failed: list[str] = []
 
-    # 3. Checksums (sha256 of each platform zip, from checksums.txt)
-    print("[checksums] Fetching subfinder checksums...", file=sys.stderr)
-    sf_checksums = get_checksums(sf_release)
-    print("[checksums] Fetching httpx checksums...", file=sys.stderr)
-    hx_checksums = get_checksums(hx_release)
+    for tool in tools_to_run:
+        entry = process_tool(tool, now, dry_run=args.dry_run)
+        if entry is None:
+            failed.append(tool["id"])
+        else:
+            index_entries.append(entry)
 
-    # Platform zip filenames for the archive_digests map
-    # Key in manifest: "darwin/amd64", "darwin/arm64", "linux/amd64"
-    # Zip filename: <tool>_<version>_<os>_<arch>.zip
-    # (version tag includes 'v' prefix in filename)
-    platforms = [
-        ("darwin", "amd64"),
-        ("darwin", "arm64"),
-        ("linux", "amd64"),
-        ("linux", "arm64"),
-    ]
+    if failed:
+        print(f"\n[warn] {len(failed)} tool(s) failed: {', '.join(failed)}", file=sys.stderr)
 
-    # OS name used in zip filename (archive_digests map key uses 'darwin', zip uses 'macOS')
-    OS_ASSET_NAME = {"darwin": "macOS", "linux": "linux", "windows": "windows"}
+    if not index_entries:
+        print("[error] No tools produced index entries; aborting.", file=sys.stderr)
+        sys.exit(1)
 
-    def zip_name(tool: str, version_no_v: str, os_: str, arch: str) -> str:
-        asset_os = OS_ASSET_NAME.get(os_, os_)
-        return f"{tool}_{version_no_v}_{asset_os}_{arch}.zip"
-
-    def archive_digests(tool: str, version: str, checksums: dict) -> dict:
-        version_no_v = version.lstrip("v")
-        result = {}
-        for os_, arch in platforms:
-            name = zip_name(tool, version_no_v, os_, arch)
-            digest = checksums.get(name)
-            if digest:
-                result[f"{os_}/{arch}"] = f"sha256:{digest}"
-            else:
-                print(f"  [warn] no checksum for {name}", file=sys.stderr)
-        return result
-
-    sf_archive_digests = archive_digests("subfinder", sf_version, sf_checksums)
-    hx_archive_digests = archive_digests("httpx", hx_version, hx_checksums)
-
-    print(f"[digests] subfinder platforms: {list(sf_archive_digests.keys())}", file=sys.stderr)
-    print(f"[digests] httpx platforms: {list(hx_archive_digests.keys())}", file=sys.stderr)
-
-    # 4. Build manifests
-    # NOTE: asset_pattern uses {version_no_v} (strips leading 'v') and {os} which the
-    # lifecycle code maps darwin → macOS. So the expanded filename for darwin/arm64 is:
-    #   subfinder_2.13.0_macOS_arm64.zip
-    sf_manifest = {
-        "registry_schema_version": 1,
-        "package_schema_version": 1,
-        "tool_id": "subfinder",
-        "version": sf_version,
-        "min_cli_version": cli_version,
-        "max_cli_version": None,
-        "install": {
-            "method": "github_release",
-            "github_repo": "projectdiscovery/subfinder",
-            "binary_name": "subfinder",
-            "asset_pattern": "subfinder_{version_no_v}_{os}_{arch}.zip",
-            "archive_digests": sf_archive_digests,
-        },
-        "dependencies": [],
-        "post_install_check": {
-            "argv": ["subfinder", "-version"],
-            "expect_exit_code": 0,
-        },
-        "platforms": [f"{os_}/{arch}" for os_, arch in platforms],
-    }
-
-    hx_manifest = {
-        "registry_schema_version": 1,
-        "package_schema_version": 1,
-        "tool_id": "httpx",
-        "version": hx_version,
-        "min_cli_version": cli_version,
-        "max_cli_version": None,
-        "install": {
-            "method": "github_release",
-            "github_repo": "projectdiscovery/httpx",
-            "binary_name": "httpx",
-            "asset_pattern": "httpx_{version_no_v}_{os}_{arch}.zip",
-            "archive_digests": hx_archive_digests,
-        },
-        "dependencies": [],
-        "post_install_check": {
-            "argv": ["httpx", "-version"],
-            "expect_exit_code": 0,
-        },
-        "platforms": [f"{os_}/{arch}" for os_, arch in platforms],
-    }
-
-    # 5. Build tarballs
-    sf_tarball = build_tarball(sf_manifest, SUBFINDER_YAML, "subfinder")
-    hx_tarball = build_tarball(hx_manifest, HTTPX_YAML, "httpx")
-
-    sf_pkg_path = base_dir / "packages" / "subfinder" / f"{sf_version}.tar.gz"
-    hx_pkg_path = base_dir / "packages" / "httpx" / f"{hx_version}.tar.gz"
-    sf_pkg_path.parent.mkdir(parents=True, exist_ok=True)
-    hx_pkg_path.parent.mkdir(parents=True, exist_ok=True)
-    sf_pkg_path.write_bytes(sf_tarball)
-    hx_pkg_path.write_bytes(hx_tarball)
-    print(f"[tarball] wrote {sf_pkg_path} ({len(sf_tarball)} bytes)", file=sys.stderr)
-    print(f"[tarball] wrote {hx_pkg_path} ({len(hx_tarball)} bytes)", file=sys.stderr)
-
-    sf_digest = sha256_of(sf_tarball)
-    hx_digest = sha256_of(hx_tarball)
-
-    # 6. Denylist
+    # 3. Denylist
     denylist = {"schema_version": 1, "entries": []}
     denylist_bytes = json.dumps(denylist, separators=(",", ":")).encode()
     denylist_digest = sha256_of(denylist_bytes)
-    (base_dir / "denylist.json").write_bytes(denylist_bytes)
-    print(f"[denylist] digest: {denylist_digest}", file=sys.stderr)
+    if not args.dry_run:
+        (BASE_DIR / "denylist.json").write_bytes(denylist_bytes)
+    print(f"\n[denylist] digest: {denylist_digest}", file=sys.stderr)
 
-    # 7. Index
-    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    # 4. Index
     index = {
         "schema_version": 1,
         "generated_at": now,
         "denylist_digest": denylist_digest,
-        "tools": [
-            {
-                "id": "subfinder",
-                "display_name": "Subfinder",
-                "description": "Fast passive subdomain enumeration tool",
-                "category": "recon",
-                "tags": ["recon", "subdomain", "passive"],
-                "homepage": "https://github.com/projectdiscovery/subfinder",
-                "latest_version": sf_version,
-                "versions": [
-                    {
-                        "version": sf_version,
-                        "package_schema_version": 1,
-                        "package_url": f"packages/subfinder/{sf_version}.tar.gz",
-                        "digest": sf_digest,
-                        "size": len(sf_tarball),
-                        "status": "active",
-                        "min_cli_version": cli_version,
-                        "max_cli_version": None,
-                        "published_at": now,
-                    }
-                ],
-                "platforms": ["linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64"],
-                "dependencies": [],
-                "github": {
-                    "owner": "projectdiscovery",
-                    "repo": "subfinder",
-                },
-            },
-            {
-                "id": "httpx",
-                "display_name": "httpx",
-                "description": "Fast and multi-purpose HTTP toolkit for web reconnaissance",
-                "category": "web",
-                "tags": ["web", "recon", "http", "alive-check"],
-                "homepage": "https://github.com/projectdiscovery/httpx",
-                "latest_version": hx_version,
-                "versions": [
-                    {
-                        "version": hx_version,
-                        "package_schema_version": 1,
-                        "package_url": f"packages/httpx/{hx_version}.tar.gz",
-                        "digest": hx_digest,
-                        "size": len(hx_tarball),
-                        "status": "active",
-                        "min_cli_version": cli_version,
-                        "max_cli_version": None,
-                        "published_at": now,
-                    }
-                ],
-                "platforms": ["linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64"],
-                "dependencies": [],
-                "github": {
-                    "owner": "projectdiscovery",
-                    "repo": "httpx",
-                },
-            },
-        ],
+        "tools": index_entries,
     }
-
     index_bytes = json.dumps(index, indent=2).encode()
-    (base_dir / "index.json").write_bytes(index_bytes)
-    print(f"[index] wrote index.json ({len(index_bytes)} bytes)", file=sys.stderr)
+    if not args.dry_run:
+        (BASE_DIR / "index.json").write_bytes(index_bytes)
+    print(f"[index] {'(dry-run) ' if args.dry_run else ''}wrote index.json ({len(index_bytes)} bytes)", file=sys.stderr)
 
-    # 8. Sign
+    # 5. Sign
     sig_bytes = sign_index(key, index_bytes)
-    (base_dir / "index.json.sig").write_bytes(sig_bytes)
-    print(f"[sign] wrote index.json.sig (64 bytes)", file=sys.stderr)
+    if not args.dry_run:
+        (BASE_DIR / "index.json.sig").write_bytes(sig_bytes)
+    print(f"[sign] {'(dry-run) ' if args.dry_run else ''}wrote index.json.sig (64 bytes)", file=sys.stderr)
 
-    # 9. Output Rust key update
-    print("\n=== UPDATE src/registry/signature.rs with this constant ===")
+    # 6. Summary
+    print(f"\n=== UPDATE src/registry/signature.rs with this constant ===")
     print(pubkey_rust_array(key))
     print("=== END ===\n")
 
-    print("[done] Registry artifacts built successfully.")
-    print(f"  subfinder: {sf_version}")
-    print(f"  httpx:     {hx_version}")
-    print(f"  denylist:  {denylist_digest}")
+    print(f"[done] Registry rebuilt: {len(index_entries)} tool(s), {len(failed)} failed.")
+    for entry in index_entries:
+        print(f"  {entry['id']:30s} {entry['latest_version']}")
+    if failed:
+        print(f"\nFailed: {', '.join(failed)}")
 
 
 if __name__ == "__main__":

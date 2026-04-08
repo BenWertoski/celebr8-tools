@@ -1,0 +1,66 @@
+id: notify
+version: 1
+name: Notify
+description: Pipe tool output to Slack, Discord, Telegram, and other notification channels (projectdiscovery)
+binary: notify
+category: util
+risk_level: low
+requires_scope: false
+requires_confirmation: false
+max_runtime_secs: 60
+tags: [util, notifications, pipeline, projectdiscovery, slack, discord]
+
+verify:
+  argv: ["notify", "-version"]
+
+ai_context:
+  summary: >
+    Use Notify to forward tool output to configured notification channels
+    (Slack, Discord, Telegram, etc.) during long-running engagements.
+    Reads from stdin and forwards to configured providers.
+  when_to_use:
+    - sending real-time alerts when nuclei finds a critical vulnerability
+    - notifying the team when new subdomains are discovered
+    - forwarding findings to a collaboration channel during active assessments
+  expected_output: text
+  follow_up_hints:
+    - configure providers in ~/.config/notify/provider-config.yaml
+    - use -bulk to batch notifications and reduce noise
+    - pipe high-signal tool output only to avoid notification fatigue
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: false
+  redact_patterns:
+    - "webhook[=:][^\\s]+"
+    - "token[=:][^\\s]+"
+
+parameters:
+  - name: provider
+    type: string
+    required: false
+    flag: "-provider"
+    description: Notification provider(s) to use (e.g. slack,discord)
+
+  - name: id
+    type: string
+    required: false
+    flag: "-id"
+    description: Specific provider ID from config
+
+  - name: bulk
+    type: bool
+    required: false
+    flag: "-bulk"
+    description: Send all stdin as a single notification
+
+  - name: char_limit
+    type: string
+    required: false
+    flag: "-cl"
+    description: Character limit per notification
+
+artifacts: []

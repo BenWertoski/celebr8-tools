@@ -1,0 +1,73 @@
+id: massdns
+version: 1
+name: MassDNS
+description: High-performance bulk DNS resolver for large subdomain lists
+binary: massdns
+category: recon
+risk_level: medium
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 600
+tags: [recon, dns, active, bulk]
+
+verify:
+  argv: ["massdns", "--help"]
+
+ai_context:
+  summary: >
+    Use MassDNS to resolve millions of subdomains rapidly using a list of
+    public DNS resolvers. Requires a resolvers file and a target wordlist.
+    Can generate significant DNS traffic — confirm scope before running.
+  when_to_use:
+    - resolving very large subdomain wordlists (100k+ entries)
+    - when dnsx throughput is insufficient for the target wordlist size
+    - bulk DNS brute-forcing in a well-scoped engagement
+  expected_output: text
+  follow_up_hints:
+    - filter output with grep or massdns -t A to isolate A records
+    - use a trusted resolvers list (e.g. from public-dns.info) to reduce noise
+    - store raw resolver output as evidence before post-processing
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: wordlist
+    type: string
+    required: true
+    positional: true
+    description: Wordlist file of subdomains to resolve
+
+  - name: resolvers
+    type: string
+    required: true
+    flag: "-r"
+    description: File containing DNS resolver addresses
+
+  - name: record_type
+    type: enum
+    required: false
+    flag: "-t"
+    values: ["A", "AAAA", "CNAME", "MX", "TXT", "NS"]
+    description: DNS record type to query
+
+  - name: output
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for results
+
+  - name: threads
+    type: string
+    required: false
+    flag: "-s"
+    description: Number of concurrent resolvers
+
+artifacts:
+  - kind: raw_stdout
+    label: resolved-subdomains

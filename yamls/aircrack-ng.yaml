@@ -1,0 +1,68 @@
+id: aircrack-ng
+version: 1
+name: Aircrack-ng
+description: WEP and WPA/WPA2 wireless network security audit suite
+binary: aircrack-ng
+category: wifi
+risk_level: high
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 3600
+tags: [wifi, wireless, wpa, wep, cracking, audit]
+
+verify:
+  argv: ["aircrack-ng", "--help"]
+
+ai_context:
+  summary: >
+    Use Aircrack-ng to audit wireless network security by cracking WEP and
+    WPA/WPA2-PSK keys from captured handshake or IV files. Requires prior
+    packet capture (e.g. via airodump-ng). Only use against explicitly
+    authorized wireless networks.
+  when_to_use:
+    - recovering WPA/WPA2-PSK from a captured 4-way handshake
+    - cracking WEP from captured IVs during an authorized wifi audit
+    - verifying wireless network resilience against dictionary attacks
+  expected_output: text
+  follow_up_hints:
+    - use a targeted wordlist (rockyou, company-specific) rather than full brute-force
+    - hashcat is faster for large wordlists via GPU acceleration
+    - document the authorized scope and engagement letter before proceeding
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "KEY FOUND!\\s*\\[([^\\]]+)\\]"
+
+parameters:
+  - name: capture_file
+    type: string
+    required: true
+    positional: true
+    description: Packet capture file (.cap or .ivs) containing handshake
+
+  - name: wordlist
+    type: string
+    required: false
+    flag: "-w"
+    description: Wordlist file for dictionary attack
+
+  - name: bssid
+    type: string
+    required: false
+    flag: "-b"
+    description: Target access point BSSID to crack
+
+  - name: essid
+    type: string
+    required: false
+    flag: "-e"
+    description: Target network ESSID
+
+artifacts:
+  - kind: raw_stdout
+    label: crack-output

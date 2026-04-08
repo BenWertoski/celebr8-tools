@@ -1,0 +1,78 @@
+\
+id: httpx
+version: 1
+name: httpx
+description: Fast and multi-purpose HTTP toolkit for web reconnaissance
+binary: httpx
+category: web
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [web, recon, http, alive-check]
+
+verify:
+  argv: ["httpx", "-version"]
+
+ai_context:
+  summary: >
+    Use httpx to probe a list of hosts or URLs for live HTTP/HTTPS services,
+    status codes, titles, and technology fingerprints.
+  when_to_use:
+    - after subdomain enumeration to identify live web hosts
+    - checking which discovered hosts are serving HTTP/HTTPS
+    - gathering basic web metadata (status, title, tech) at scale
+  expected_output: text
+  follow_up_hints:
+    - combine with subfinder output for full recon pipeline
+    - filter 200/302 responses for further web testing
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: list
+    type: string
+    required: false
+    flag: "-l"
+    description: Input file containing list of hosts or URLs to probe
+
+  - name: url
+    type: target
+    required: false
+    positional: false
+    flag: "-u"
+    description: Single target URL or host to probe
+
+  - name: status_code
+    type: bool
+    required: false
+    flag: "-sc"
+    description: Display response status code
+
+  - name: title
+    type: bool
+    required: false
+    flag: "-title"
+    description: Display page title
+
+  - name: tech_detect
+    type: bool
+    required: false
+    flag: "-tech-detect"
+    description: Enable technology detection
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Silent mode, only print results
+
+artifacts:
+  - kind: raw_stdout
+    label: http-probe-results

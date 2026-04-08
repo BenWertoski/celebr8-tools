@@ -1,0 +1,67 @@
+id: interactsh-client
+version: 1
+name: Interactsh Client
+description: Out-of-band interaction testing client (projectdiscovery)
+binary: interactsh-client
+category: util
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 3600
+tags: [util, oob, oast, projectdiscovery, blind]
+
+verify:
+  argv: ["interactsh-client", "-version"]
+
+ai_context:
+  summary: >
+    Use the Interactsh client to generate unique out-of-band callback URLs
+    for detecting blind injection vulnerabilities (SSRF, blind XSS, blind
+    SQLi, XXE). Interacts with the projectdiscovery Interactsh server.
+  when_to_use:
+    - generating callback URLs for blind SSRF or XXE testing
+    - receiving out-of-band DNS/HTTP/SMTP interactions from injection payloads
+    - testing blind command injection where output is not reflected
+  expected_output: text
+  follow_up_hints:
+    - use the generated URL as a payload in nuclei, dalfox, or manual tests
+    - monitor interactions in real time during active testing sessions
+    - store interaction logs as evidence with timestamps
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "token=[^\\s&]+"
+
+parameters:
+  - name: server
+    type: string
+    required: false
+    flag: "-s"
+    description: Custom Interactsh server URL (default: oast.pro)
+
+  - name: number
+    type: string
+    required: false
+    flag: "-n"
+    description: Number of interaction URLs to generate
+
+  - name: json
+    type: bool
+    required: false
+    flag: "-json"
+    description: Output interactions as JSON
+
+  - name: poll_interval
+    type: string
+    required: false
+    flag: "-poll-interval"
+    description: Polling interval for new interactions in seconds
+
+artifacts:
+  - kind: raw_stdout
+    label: oob-interactions

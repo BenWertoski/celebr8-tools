@@ -1,0 +1,102 @@
+id: sqlmap
+version: 1
+name: sqlmap
+description: Automatic SQL injection detection and exploitation tool
+binary: sqlmap
+category: web
+risk_level: high
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 1800
+tags: [web, sqli, active, exploitation]
+
+verify:
+  argv: ["sqlmap", "--version"]
+
+ai_context:
+  summary: >
+    Use sqlmap to detect and exploit SQL injection vulnerabilities in scoped
+    web applications. Can enumerate databases, extract data, and attempt OS
+    command execution depending on the injection type and DBMS.
+    Always confirm scope and operator authorization before running.
+  when_to_use:
+    - confirming SQL injection after a potential finding is identified
+    - data extraction from a scoped application under explicit authorization
+    - testing a specific parameter identified through manual or automated review
+  expected_output: text
+  follow_up_hints:
+    - use --level and --risk conservatively (start at 1,1) to minimize noise
+    - use --batch for non-interactive operation in automated workflows
+    - store extraction output as evidence artifacts with full command context
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "password[=:][^\\s&]+"
+    - "passwd[=:][^\\s&]+"
+
+parameters:
+  - name: url
+    type: target
+    required: false
+    flag: "-u"
+    description: Target URL with parameter(s) to test
+
+  - name: request_file
+    type: string
+    required: false
+    flag: "-r"
+    description: File containing raw HTTP request to test
+
+  - name: data
+    type: string
+    required: false
+    flag: "--data"
+    description: POST data string to test
+
+  - name: param
+    type: string
+    required: false
+    flag: "-p"
+    description: Specific parameter to test
+
+  - name: level
+    type: enum
+    required: false
+    flag: "--level"
+    values: ["1", "2", "3", "4", "5"]
+    description: Detection level (1=default, 5=most exhaustive)
+
+  - name: risk
+    type: enum
+    required: false
+    flag: "--risk"
+    values: ["1", "2", "3"]
+    description: Risk level for tests (1=safe, 3=may modify data)
+
+  - name: batch
+    type: bool
+    required: false
+    flag: "--batch"
+    description: Non-interactive mode, use default answers
+
+  - name: dbms
+    type: enum
+    required: false
+    flag: "--dbms"
+    values: ["MySQL", "PostgreSQL", "MSSQL", "Oracle", "SQLite", "Access"]
+    description: Force backend DBMS type
+
+  - name: dbs
+    type: bool
+    required: false
+    flag: "--dbs"
+    description: Enumerate databases
+
+artifacts:
+  - kind: raw_stdout
+    label: sqlmap-output

@@ -1,0 +1,61 @@
+id: chaos-client
+version: 1
+name: Chaos Client
+description: projectdiscovery Chaos DB feed — passive subdomain dataset access
+binary: chaos
+category: recon
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 120
+tags: [recon, subdomain, passive, projectdiscovery]
+
+verify:
+  argv: ["chaos", "-version"]
+
+ai_context:
+  summary: >
+    Use the Chaos client to fetch pre-indexed subdomain data from the
+    projectdiscovery Chaos dataset. Entirely passive — no traffic to the
+    target. Requires a valid Chaos API key configured in the environment.
+  when_to_use:
+    - supplementing subfinder/assetfinder with Chaos dataset coverage
+    - quick lookup of known subdomains before active enumeration
+    - reconnaissance on large organizations with broad Chaos coverage
+  expected_output: text
+  follow_up_hints:
+    - pipe results through anew to deduplicate against other recon outputs
+    - combine with subfinder output for comprehensive passive coverage
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "PDCP_API_KEY=[^\\s]+"
+    - "chaos_api_key=[^\\s]+"
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    flag: "-d"
+    description: Target domain to fetch subdomains for
+
+  - name: silent
+    type: bool
+    required: false
+    flag: "-silent"
+    description: Only print subdomains in output
+
+  - name: count
+    type: bool
+    required: false
+    flag: "-count"
+    description: Print count of subdomains for the domain
+
+artifacts:
+  - kind: raw_stdout
+    label: subdomain-list

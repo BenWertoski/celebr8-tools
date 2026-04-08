@@ -1,0 +1,86 @@
+id: dalfox
+version: 1
+name: Dalfox
+description: Fast parameter-based XSS scanner and utility
+binary: dalfox
+category: web
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [web, xss, active, scanning]
+
+verify:
+  argv: ["dalfox", "version"]
+
+ai_context:
+  summary: >
+    Use Dalfox to scan URLs and parameters for reflected and DOM XSS
+    vulnerabilities. Supports piping URLs from Katana/gau for bulk scanning
+    and can verify findings with a headless browser.
+  when_to_use:
+    - testing parameterized URLs discovered during crawling for XSS
+    - bulk XSS scanning of a URL list from gau/katana
+    - verifying XSS findings before reporting
+  expected_output: text
+  follow_up_hints:
+    - use --silence to suppress non-finding output
+    - pipe output from gau or katana for comprehensive coverage
+    - use --output with JSON for structured finding storage
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: url
+    type: target
+    required: false
+    positional: false
+    flag: "url"
+    description: Single URL to test (use as subcommand argument)
+
+  - name: pipe
+    type: bool
+    required: false
+    flag: "--pipe"
+    description: Read URLs from stdin (pipe mode)
+
+  - name: output
+    type: string
+    required: false
+    flag: "--output"
+    description: Output file for findings
+
+  - name: format
+    type: enum
+    required: false
+    flag: "--format"
+    values: ["plain", "json"]
+    description: Output format
+
+  - name: blind
+    type: string
+    required: false
+    flag: "--blind"
+    description: Blind XSS callback URL for out-of-band detection
+
+  - name: silence
+    type: bool
+    required: false
+    flag: "--silence"
+    description: Only print found XSS, suppress other output
+
+  - name: timeout
+    type: string
+    required: false
+    flag: "--timeout"
+    description: Request timeout in seconds
+
+artifacts:
+  - kind: raw_stdout
+    label: xss-findings

@@ -1,0 +1,69 @@
+id: cloudfox
+version: 1
+name: CloudFox
+description: Cloud attack surface mapper for AWS, Azure, and GCP environments
+binary: cloudfox
+category: cloud
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 600
+tags: [cloud, aws, azure, gcp, recon, attack-surface]
+
+verify:
+  argv: ["cloudfox", "version"]
+
+ai_context:
+  summary: >
+    Use CloudFox to enumerate attack surface in cloud environments. Discovers
+    exploitable misconfigurations, overly permissive IAM policies, exposed
+    secrets, and lateral movement paths across AWS, Azure, and GCP.
+  when_to_use:
+    - cloud infrastructure assessment in a scoped engagement
+    - mapping IAM permissions and privilege escalation paths
+    - discovering exposed secrets and misconfigured cloud resources
+  expected_output: text
+  follow_up_hints:
+    - review IAM findings for privilege escalation before proceeding
+    - cross-reference with trufflehog findings for credential exposure
+    - store output files as evidence artifacts for cloud findings
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - "AKIA[0-9A-Z]{16}"
+    - "aws_secret_access_key[=:][^\\s]+"
+
+parameters:
+  - name: provider
+    type: enum
+    required: true
+    positional: true
+    values: ["aws", "azure", "gcp"]
+    description: Cloud provider to enumerate
+
+  - name: profile
+    type: string
+    required: false
+    flag: "--profile"
+    description: AWS profile or cloud credential profile to use
+
+  - name: output
+    type: string
+    required: false
+    flag: "--output-directory"
+    description: Directory to write output files
+
+  - name: all_checks
+    type: bool
+    required: false
+    flag: "--all-checks"
+    description: Run all available checks
+
+artifacts:
+  - kind: raw_stdout
+    label: cloudfox-output

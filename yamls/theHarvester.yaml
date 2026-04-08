@@ -1,0 +1,72 @@
+id: theharvester
+version: 1
+name: theHarvester
+description: OSINT tool for gathering emails, subdomains, IPs, and URLs from public sources
+binary: theHarvester
+category: osint
+risk_level: low
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 300
+tags: [osint, passive, email, subdomain, recon]
+
+verify:
+  argv: ["theHarvester", "-h"]
+
+ai_context:
+  summary: >
+    Use theHarvester to passively gather emails, subdomains, IP addresses,
+    and URLs for a target domain from search engines, Shodan, and other
+    public data sources. No active probing of the target.
+  when_to_use:
+    - initial OSINT phase to gather email addresses and employee names
+    - supplementing subdomain discovery with search engine data
+    - building a contact list for phishing simulation engagements
+  expected_output: text
+  follow_up_hints:
+    - cross-reference discovered emails with breach databases if authorized
+    - pipe discovered subdomains to dnsx or httpx for live host verification
+    - use multiple -b sources for broader coverage
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: domain
+    type: target
+    required: true
+    flag: "-d"
+    description: Target domain to harvest data for
+
+  - name: source
+    type: string
+    required: false
+    flag: "-b"
+    description: Data source(s) to query (e.g. google,bing,shodan,all)
+
+  - name: limit
+    type: string
+    required: false
+    flag: "-l"
+    description: Limit the number of results per source
+
+  - name: output
+    type: string
+    required: false
+    flag: "-f"
+    description: Output filename (without extension)
+
+  - name: dns_lookup
+    type: bool
+    required: false
+    flag: "-n"
+    description: Enable DNS lookup on discovered hosts
+
+artifacts:
+  - kind: raw_stdout
+    label: osint-results

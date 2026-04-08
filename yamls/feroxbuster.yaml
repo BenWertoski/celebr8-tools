@@ -1,0 +1,90 @@
+id: feroxbuster
+version: 1
+name: Feroxbuster
+description: Fast recursive directory and file brute-forcer for web applications
+binary: feroxbuster
+category: web
+risk_level: medium
+requires_scope: true
+requires_confirmation: false
+max_runtime_secs: 900
+tags: [web, fuzzing, active, brute-force, recursive]
+
+verify:
+  argv: ["feroxbuster", "--version"]
+
+ai_context:
+  summary: >
+    Use Feroxbuster to recursively discover directories and files on a scoped
+    web server. Unlike ffuf, it automatically recurses into discovered paths
+    and can extract links from responses for broader coverage.
+  when_to_use:
+    - thorough directory discovery on a scoped web application
+    - when recursive enumeration is needed beyond a single depth
+    - discovering API endpoints and hidden admin interfaces
+  expected_output: text
+  follow_up_hints:
+    - use --filter-status to suppress noise (e.g. 404,301)
+    - combine with --extract-links to discover JS-linked endpoints
+    - store discovered paths as evidence before manual review
+
+policy:
+  allow_in_auto: true
+  approval_mode: inherit
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns: []
+
+parameters:
+  - name: url
+    type: target
+    required: true
+    flag: "--url"
+    description: Target URL to brute-force
+
+  - name: wordlist
+    type: string
+    required: false
+    flag: "--wordlist"
+    description: Wordlist file for path discovery
+
+  - name: threads
+    type: string
+    required: false
+    flag: "--threads"
+    description: Number of concurrent threads
+
+  - name: depth
+    type: string
+    required: false
+    flag: "--depth"
+    description: Maximum recursion depth (0 = unlimited)
+
+  - name: filter_status
+    type: string
+    required: false
+    flag: "--filter-status"
+    description: Filter responses by status code
+
+  - name: extensions
+    type: string
+    required: false
+    flag: "--extensions"
+    description: File extensions to search (e.g. php,html,js)
+
+  - name: output
+    type: string
+    required: false
+    flag: "--output"
+    description: Output file for results
+
+  - name: json
+    type: bool
+    required: false
+    flag: "--json"
+    description: Emit results as JSON
+
+artifacts:
+  - kind: raw_stdout
+    label: feroxbuster-results

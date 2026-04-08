@@ -1,0 +1,86 @@
+id: hashcat
+version: 1
+name: Hashcat
+description: GPU-accelerated password recovery and hash cracking tool
+binary: hashcat
+category: wifi
+risk_level: high
+requires_scope: true
+requires_confirmation: true
+max_runtime_secs: 86400
+tags: [wifi, cracking, passwords, gpu, hashes]
+
+verify:
+  argv: ["hashcat", "--version"]
+
+ai_context:
+  summary: >
+    Use Hashcat for high-speed GPU-accelerated password hash cracking.
+    Supports hundreds of hash types including WPA-PMKID, NTLM, bcrypt, and
+    MD5. Only use against hashes obtained from explicitly authorized systems.
+  when_to_use:
+    - cracking WPA/WPA2-PMKID hashes captured during authorized wifi assessment
+    - recovering passwords from hashes obtained during an authorized pentest
+    - demonstrating password policy weakness on captured credential hashes
+  expected_output: text
+  follow_up_hints:
+    - use -O (optimized kernels) for speed on supported hash types
+    - use rules (-r) to expand wordlist coverage with transformations
+    - store cracked credentials as redacted evidence artifacts
+
+policy:
+  allow_in_auto: false
+  approval_mode: always
+  capture_stdout: true
+  capture_stderr: true
+  retain_artifacts: true
+  redact_patterns:
+    - ":[^:]+$"
+
+parameters:
+  - name: hash_file
+    type: string
+    required: true
+    positional: true
+    description: File containing hash(es) to crack
+
+  - name: hash_type
+    type: string
+    required: true
+    flag: "-m"
+    description: Hash type ID (e.g. 22000 for WPA, 1000 for NTLM)
+
+  - name: attack_mode
+    type: enum
+    required: false
+    flag: "-a"
+    values: ["0", "1", "3", "6", "7"]
+    description: Attack mode (0=dictionary, 1=combinator, 3=brute-force)
+
+  - name: wordlist
+    type: string
+    required: false
+    positional: true
+    description: Wordlist file for dictionary attack
+
+  - name: rules
+    type: string
+    required: false
+    flag: "-r"
+    description: Rules file for wordlist mangling
+
+  - name: output_file
+    type: string
+    required: false
+    flag: "-o"
+    description: Output file for cracked hashes
+
+  - name: optimized
+    type: bool
+    required: false
+    flag: "-O"
+    description: Enable optimized kernels (limits max password length)
+
+artifacts:
+  - kind: raw_stdout
+    label: crack-output
