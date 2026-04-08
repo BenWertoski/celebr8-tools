@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-08T18:38:28Z",
+  "denylist_digest": "sha256:ba4fc47c6525d8de1a187fe7d41e1de1b2fe52df1f6a43d0544675d3ac44e5fe",
+  "tools": [
+    {
+      "id": "subfinder",
+      "display_name": "Subfinder",
+      "description": "Fast passive subdomain enumeration tool",
+      "category": "recon",
+      "tags": [
+        "recon",
+        "subdomain",
+        "passive"
+      ],
+      "homepage": "https://github.com/projectdiscovery/subfinder",
+      "latest_version": "v2.13.0",
+      "versions": [
+        {
+          "version": "v2.13.0",
+          "package_schema_version": 1,
+          "package_url": "packages/subfinder/v2.13.0.tar.gz",
+          "digest": "sha256:f59f6c16cd9fac36ed2dafd95ef3b9034b20dc2a869a37e6beb8ea6afcecb3ce",
+          "size": 1289,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T18:38:28Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "subfinder"
+      }
+    },
+    {
+      "id": "httpx",
+      "display_name": "httpx",
+      "description": "Fast and multi-purpose HTTP toolkit for web reconnaissance",
+      "category": "web",
+      "tags": [
+        "web",
+        "recon",
+        "http",
+        "alive-check"
+      ],
+      "homepage": "https://github.com/projectdiscovery/httpx",
+      "latest_version": "v1.9.0",
+      "versions": [
+        {
+          "version": "v1.9.0",
+          "package_schema_version": 1,
+          "package_url": "packages/httpx/v1.9.0.tar.gz",
+          "digest": "sha256:e71d60b41d4d030d4a096f33e66155030b70342aecfe3cf08f34c370e5f8c0e8",
+          "size": 1414,
+          "status": "active",
+          "min_cli_version": "0.1.0",
+          "max_cli_version": null,
+          "published_at": "2026-04-08T18:38:28Z"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64",
+        "darwin/amd64",
+        "darwin/arm64"
+      ],
+      "dependencies": [],
+      "github": {
+        "owner": "projectdiscovery",
+        "repo": "httpx"
+      }
+    }
+  ]
+}
